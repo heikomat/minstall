@@ -1,0 +1,43 @@
+# minstall
+# Usage
+run this script as postinstall-script
+
+# What does it do?
+It installs dependencies of all modules (and possibly these of submodules of submodules etc.) into the root-`node_modules`.
+It also symlinks all the modules to the root-`node_modules`
+
+# Why does it do this (what is the benefit)?
+- It allows the automatic installation of sub-modules that are in a `modules`-folder on `npm install`.
+- It minimizes the installed dependencies, because all dependencies are installed in the root-`node_modules`
+- Because all sub-modules are linked into the root-`node_modules`, they can be required without navigating. Instead of `require('./modules/myModule')` you can just say `require('myModule')`
+
+# How does it do this?
+1. Look for a `modules`-folder, and for modules in it
+1. Gather the module details from the package.json of every module.
+1. Remove all module-symlinks from the root-`node_modules`
+1. npm-install all dependencies of all modules into the root-`node_modules`
+1. Run the postinstall-commands of the modules by doing the following for every module:
+    1. check, if a postinstall command exists. if not, continue with the next module
+    1. create a symlink in the module-folder that points to the root-`node_modules`
+    1. run the postinstall-command
+    1. remove the previously created symlink.
+1. create symlinks in the root-`node_modules` that point to the module-folders
+
+# why are certain things done the way they are?
+- step 2: this is done, so that the following npm-install wouldn't try to recursively install things within `node_modules`
+- step 5.2: this is done, so that possible npm-installs done by the postinstall end up in the root-`node_modules`, and any possible dependencies needed by the postinstall are avaliable to it
+- step 6: this is done, so that the modules can be required without navigating to it in the require-statement
+
+# Glossary
+##### root-node_modules
+The `node_modules`-folder that is in the project-root
+
+##### module
+A folder that does not start with a `.`, and that contains a package.json
+
+##### module-details
+A collection of the following information about a module:
+1. folderName
+1. module-name
+1. module-dependencies
+1. postinstall-command for the module

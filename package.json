@@ -1,0 +1,27 @@
+{
+  "name": "minstall",
+  "version": "1.0.0",
+  "description": "Installs sub-module dependencies into project-root, and symlinks these modules there as well",
+  "main": "minstall.js",
+  "bin": {
+    "postinstall": "minstall.js"
+  },
+  "keywords": [
+    "install",
+    "minstall",
+    "postinstall",
+    "module",
+    "modules",
+    "dependencies",
+    "require",
+    "symlink"
+  ],
+  "author": "Heiko Mathes <heiko.mathes@gmail.com>",
+  "maintainers": [
+    "Heiko Mathes <heiko.mathes@gmail.com>"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.4.6"
+  }
+}
