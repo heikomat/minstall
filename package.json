@@ -1,11 +1,9 @@
 {
   "name": "minstall",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Installs sub-module dependencies into project-root, and symlinks these modules there as well",
   "main": "minstall.js",
-  "bin": {
-    "postinstall": "minstall.js"
-  },
+  "bin": "./minstall.js",
   "keywords": [
     "install",
     "minstall",
@@ -21,6 +19,14 @@
     "Heiko Mathes <heiko.mathes@gmail.com>"
   ],
   "license": "MIT",
+  "bugs": {
+    "url" : "https://github.com/heikomat/minstall/issues",
+    "email" : "heiko.mathes@gmail.com"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/heikomat/minstall.git"
+  },
   "dependencies": {
     "bluebird": "^3.4.6"
   }
