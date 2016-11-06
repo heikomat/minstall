@@ -44,6 +44,7 @@ A folder that does not start with a `.`, and that contains a package.json
 
 ##### module-details
 A collection of the following information about a module:
+
 1. folderName
 1. module-name
 1. module-dependencies
