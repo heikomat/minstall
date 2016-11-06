@@ -7,10 +7,20 @@ const path = require('path');
 const exec = require('child_process').exec;
 const Promise = require('bluebird');
 
-const modulesFolder = 'modules';
+let modulesFolder = 'modules';
 let commandConcatSymbol = ';';
 
+class UncriticalError extends Error {
+  constructor(message) {
+    super(message);
+  }
+}
+
 const run = () => {
+  if (process.argv[2]) {
+    modulesFolder = process.argv[2];
+  }
+  
   const startTime = (new Date()).getTime();
 
   if (os.platform() === 'win32') {
@@ -18,12 +28,19 @@ const run = () => {
   }
 
   let projectModules = null;
-  getModules()
+  _verifyFolderName(process.cwd(), modulesFolder)
+    .then((folderName) => {
+
+      if (folderName == null) {
+        throw new UncriticalError(`${modulesFolder} not found, thus minstall is done :)`);
+      }
+      return getModules();
+    })
     .then((moduleInfos) => {
 
       projectModules = moduleInfos;
       if (moduleInfos.length === 0) {
-        throw new Error('no modules found');
+        throw new UncriticalError('no modules found, thus minstall is done :)');
       }
 
       _logModules(moduleInfos);
@@ -48,6 +65,10 @@ const run = () => {
       let runSeconds = Math.round(((new Date()).getTime() - startTime) / 1000);
       const runMinutes = Math.floor(runSeconds / 60);
       console.log(`\n\nminstall finished in ${runMinutes}:${runSeconds%60} minutes :)\n\n`);
+    })
+    .catch(UncriticalError, (error) => {
+
+      console.log(error.message);
     })
     .catch((error) => {
 
@@ -254,6 +275,10 @@ const _verifyFolderName = (folderPath, folderName) => {
   return new Promise((resolve, reject) => {
     fs.stat(folder, (error, stats) => {
       if (error) {
+        if (error.code === 'ENOENT') {
+          return resolve(null);
+        }
+
         return reject(error);
       }
 

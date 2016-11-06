@@ -4,10 +4,11 @@ install with `npm install minstall --save` and add minstall as postinstall-scrip
 ```JavaScript
 {
   "scripts": {
-    "postinstall": "minstall"
+    "postinstall": "minstall <modules-folder>"
   }
 }
 ```
+`modules-folder` is optional and will default to `modules` if omitted
 
 # What does it do?
 It installs dependencies of all modules (and possibly these of submodules of submodules etc.) into the root-`node_modules`.
