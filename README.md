@@ -1,6 +1,6 @@
 # minstall
 # Usage
-install with `npm install minstall` and minstall as postinstall-script, by adding it to your package.json like this:
+install with `npm install minstall` and add minstall as postinstall-script, by adding it to your package.json like this:
 ```JavaScript
 {
   "scripts": {
