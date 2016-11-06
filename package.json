@@ -1,7 +1,7 @@
 {
   "name": "minstall",
-  "version": "1.0.8",
-  "description": "Installs sub-module dependencies into project-root, and symlink these modules there as well",
+  "version": "1.0.9",
+  "description": "local module installer",
   "main": "minstall.js",
   "bin": "minstall.js",
   "keywords": [
@@ -19,6 +19,7 @@
     "Heiko Mathes <heiko.mathes@gmail.com>"
   ],
   "license": "MIT",
+  "homepage": "http://minstall.io",
   "bugs": {
     "url" : "https://github.com/heikomat/minstall/issues",
     "email" : "heiko.mathes@gmail.com"
