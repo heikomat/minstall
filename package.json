@@ -1,7 +1,7 @@
 {
   "name": "minstall",
-  "version": "1.0.1",
-  "description": "Installs sub-module dependencies into project-root, and symlinks these modules there as well",
+  "version": "1.0.2",
+  "description": "Installs sub-module dependencies into project-root, and symlink these modules there as well",
   "main": "minstall.js",
   "bin": "./minstall.js",
   "keywords": [
