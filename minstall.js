@@ -47,11 +47,11 @@ const run = () => {
 
       let runSeconds = Math.round(((new Date()).getTime() - startTime) / 1000);
       const runMinutes = Math.floor(runSeconds / 60);
-      console.log(`\n\npostinstall-script finished in ${runMinutes}:${runSeconds%60} minutes :)\n\n`);
+      console.log(`\n\nminstall finished in ${runMinutes}:${runSeconds%60} minutes :)\n\n`);
     })
     .catch((error) => {
 
-      console.log('Error running postinstall', error);
+      console.log('Error running minstall', error);
     });
 };
 
@@ -299,7 +299,7 @@ const _logModules = (moduleInfos) => {
     }
     return `|  ${depsCount} deps  |  ${hasPostinstall}  |  ${moduleInfo.folderName}`;
   });
-  console.log(`running postinstall. modules found: \n${moduleNames.join('\n')}`);
+  console.log(`running minstall. modules found: \n${moduleNames.join('\n')}`);
 };
 
 run();

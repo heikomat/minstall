@@ -1,6 +1,14 @@
 # minstall
 # Usage
-run this script as postinstall-script
+install with `npm install minstall`
+run this script as postinstall-script, by adding it to your package.json like this:
+```JavaScript
+{
+  "scripts": {
+    "postinstall": "minstall"
+  },
+}
+```
 
 # What does it do?
 It installs dependencies of all modules (and possibly these of submodules of submodules etc.) into the root-`node_modules`.
