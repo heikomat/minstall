@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const exec = require('child_process').exec;
 const Promise = require('bluebird');
+const readline = require('readline');
 
 let modulesFolder = 'modules';
 let commandConcatSymbol = ';';
@@ -28,12 +29,27 @@ const run = () => {
   }
 
   let projectModules = null;
-  _verifyFolderName(process.cwd(), modulesFolder)
+  let installedModules = null;
+  _verifyFolderName(process.cwd(), 'node_modules')
+    .then((folderName) => {
+
+      if (folderName == null) {
+        throw new UncriticalError(`minstall started from outside the project-root. aborting.`);
+      }
+
+      return _verifyFolderName(process.cwd(), modulesFolder);
+    })
     .then((folderName) => {
 
       if (folderName == null) {
         throw new UncriticalError(`${modulesFolder} not found, thus minstall is done :)`);
       }
+
+      return getModules('node_modules');
+    })
+    .then((modules) => {
+
+      installedModules = modules;
       return getModules();
     })
     .then((moduleInfos) => {
@@ -46,8 +62,10 @@ const run = () => {
       _logModules(moduleInfos);
       console.log('\n- installing module-dependencies');
 
-      const dependencies = _getModuleDependencies(moduleInfos);
-      return _runCommand(`npm install ${dependencies.join(' ')}`);
+      const dependencies = _getModuleDependencies(installedModules, moduleInfos);
+      if (dependencies.length > 0) {
+        return _runCommand(`npm install ${dependencies.join(' ')}`);
+      }
     })
     .then(() => {
 
@@ -76,9 +94,13 @@ const run = () => {
     });
 };
 
-const getModules = () => {
+const getModules = (rootFolder) => {
 
-  const modulesPath = path.join(process.cwd(), modulesFolder);
+  if (!rootFolder) {
+    rootFolder = modulesFolder;
+  }
+
+  const modulesPath = path.join(process.cwd(), rootFolder);
   return _getFolderNames(modulesPath)
     .then((folderNames) => {
 
@@ -93,16 +115,20 @@ const getModules = () => {
       });
 
       return Promise.all(modules.map((moduleName) => {
-        return getModuleInfo(moduleName);
+        return getModuleInfo(rootFolder, moduleName);
       }));
     });
 };
 
-const getModuleInfo = (moduleFolder) => {
+const getModuleInfo = (rootFolder, moduleFolder) => {
   return new Promise((resolve, reject) => {
 
-    const pacakgePath = path.join(process.cwd(), modulesFolder, moduleFolder, 'package.json');
-    fs.readFile(pacakgePath, 'utf8', (error, data) => {
+    if (!rootFolder) {
+      rootFolder = modulesFolder;
+    }
+
+    const packagePath = path.join(process.cwd(), rootFolder, moduleFolder, 'package.json');
+    fs.readFile(packagePath, 'utf8', (error, data) => {
 
       if (error) {
         return reject(error);
@@ -120,6 +146,7 @@ const getModuleInfo = (moduleFolder) => {
       const result = {
         folderName: moduleFolder,
         name: packageInfo.name,
+        version: packageInfo.version,
         dependencies: dependencies,
       };
 
@@ -174,8 +201,8 @@ const runPostinstalls = (moduleInfos, index, noPostinstallCount) => {
   }).length;
 
   if (index > 0) {
-    process.stdout.clearLine();
-    process.stdout.cursorTo(0);
+    readline.clearLine(process.stdout);
+    readline.cursorTo(process.stdout, 0);
   }
 
   process.stdout.write(`- running postinstall for ${moduleDetails.folderName} (${(index + 1 - noPostinstallCount)}/${postinstallCount})`);
@@ -231,18 +258,27 @@ const _runCommand = (command) => {
   });
 };
 
-const _getModuleDependencies = (moduleInfos) => {
+const _getModuleDependencies = (installedModules, moduleInfos) => {
 
   const dependencies = [];
+  const installingModules = [];
+  const installedModuleNames = installedModules.map((module) => {
+    return module.name;
+  })
+
   for (let index = 0; index < moduleInfos.length; index++) {
     for (let name in moduleInfos[index].dependencies) {
+
+      if (installedModuleNames.indexOf(name) >= 0 || installingModules.indexOf(name) >= 0) {
+        continue;
+      }
+
       dependencies.push(`${name}@"${moduleInfos[index].dependencies[name]}"`);
+      installingModules.push(name);
     }
   }
 
-  return dependencies.filter((dependencyString, index) => {
-    return dependencies.indexOf(dependencyString) === index;
-  });
+  return dependencies;
 };
 
 const _getFolderNames = (folderPath) => {
