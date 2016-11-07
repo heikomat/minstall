@@ -1,6 +1,6 @@
 {
   "name": "minstall",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "local module installer",
   "main": "minstall.js",
   "bin": "minstall.js",
@@ -17,6 +17,9 @@
   "author": "Heiko Mathes <heiko.mathes@gmail.com>",
   "maintainers": [
     "Heiko Mathes <heiko.mathes@gmail.com>"
+  ],
+  "contributors": [
+    "5Minds IT-Solutions GmbH & Co. KG <info@5minds.de>"
   ],
   "license": "MIT",
   "homepage": "http://minstall.io",
