@@ -1,6 +1,7 @@
 # minstall
 
-## In collaboration with ![alt text](img/5minds_logo.png "5Minds IT-Solutions")
+## In collaboration with
+![5Minds IT-Solutions](img/5minds_logo.png "5Minds IT-Solutions")
 #### [5minds.de](https://5minds.de)
 #### [github.com/5minds](https://github.com/5minds)
 
