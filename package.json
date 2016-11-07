@@ -1,6 +1,6 @@
 {
   "name": "minstall",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "local module installer",
   "main": "minstall.js",
   "bin": "minstall.js",
