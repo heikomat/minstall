@@ -1,6 +1,6 @@
 {
   "name": "minstall",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "local module installer",
   "main": "lib/minstall.js",
   "bin": "lib/minstall.js",
@@ -32,11 +32,12 @@
     "url": "https://github.com/heikomat/minstall.git"
   },
   "dependencies": {
-    "bluebird": "^3.4.6"
+    "bluebird": "^3.4.6",
+    "semver": "^5.3.0"
   },
   "devDependencies": {
     "eslint": "^3.9.1",
-    "eslint-config-airbnb-base": "^10.0.1",
-    "eslint-plugin-import": "^2.2.0"
+    "eslint-config-5minds": "0.0.5",
+    "eslint-plugin-import": "^1.16.0"
   }
 }
