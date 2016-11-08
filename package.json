@@ -1,9 +1,9 @@
 {
   "name": "minstall",
-  "version": "1.1.0-pre2",
+  "version": "1.1.0-pre5",
   "description": "local module installer",
-  "main": "minstall.js",
-  "bin": "minstall.js",
+  "main": "lib/minstall.js",
+  "bin": "lib/minstall.js",
   "keywords": [
     "install",
     "minstall",
@@ -24,14 +24,19 @@
   "license": "MIT",
   "homepage": "http://minstall.io",
   "bugs": {
-    "url" : "https://github.com/heikomat/minstall/issues",
-    "email" : "heiko.mathes@gmail.com"
+    "url": "https://github.com/heikomat/minstall/issues",
+    "email": "heiko.mathes@gmail.com"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/heikomat/minstall.git"
+    "type": "git",
+    "url": "https://github.com/heikomat/minstall.git"
   },
   "dependencies": {
     "bluebird": "^3.4.6"
+  },
+  "devDependencies": {
+    "eslint": "^3.9.1",
+    "eslint-config-airbnb-base": "^10.0.1",
+    "eslint-plugin-import": "^2.2.0"
   }
 }
