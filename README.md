@@ -37,18 +37,6 @@ It also symlinks all the modules to the root-`node_modules`
     1. remove the previously created symlink.
 1. create symlinks in the root-`node_modules` that point to the module-folders
 
-
-1. nur 1 npm-install pro modul, nicht für alle module einer ebene zusammen einen
-1. alle pakete, die "im weg" sind in einen ordner kopieren, mit dem namen des moduls, das sie gestört haben
-1. npm install aller noch nicht installierten pakete für das modul
-1. postinstall des moduls durchführen
-1. alle pakete, die vorher konflikte meldeten in einen Ordner im Modul schieben (node_modules_conflicted)
-1. die ursprungs-pakete wieder an ihren ursprünglichen ort kopieren, und den ordner mit dem modulnamen wieder löschen
-1. den node_modules-symlink wieder löschen
-1. node_modules_conflicted in node_modules umbenennen
-1. profit
-
-
 # Why are certain things done the way they are?
 - step 2: this is done, so that the following npm-install wouldn't try to recursively install things within `node_modules`
 - step 5.2: this is done, so that possible npm-installs done by the postinstall end up in the root-`node_modules`, and any possible dependencies needed by the postinstall are avaliable to it
