@@ -19,6 +19,7 @@ install with `npm install minstall --save` and add minstall as postinstall-scrip
 # What does it do?
 It installs dependencies of all modules (and possibly these of submodules of submodules etc.) into the root-`node_modules`.
 It also symlinks all the modules to the root-`node_modules`
+When it encounters a dependency, that has already been installed in an incompatible version, it'll install those incompatible depencenies in their own node_modules-folder within the module that has these dependencies
 
 # Why does it do this (what is the benefit)?
 - It allows the automatic installation of sub-modules that are in a `modules`-folder on `npm install`.
@@ -41,13 +42,6 @@ It also symlinks all the modules to the root-`node_modules`
 - step 2: this is done, so that the following npm-install wouldn't try to recursively install things within `node_modules`
 - step 5.2: this is done, so that possible npm-installs done by the postinstall end up in the root-`node_modules`, and any possible dependencies needed by the postinstall are avaliable to it
 - step 6: this is done, so that the modules can be required without navigating to it in the require-statement
-
-# Known issues
-At the moment, whenever two or more local modules depend on the same package, but with different, incompatible versions, minstall will exit with an error that tells you, where the incompatibility occured.
-
-If you absolutely have to use incompatible versions of the same package throughout your project, minstall is __not yet__ for you.
-
-__In the (probably near) future, support for multiple versions of the same package will get implemented!__
 
 # Glossary
 ##### root-node_modules
