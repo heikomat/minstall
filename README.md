@@ -47,7 +47,7 @@ my-modular-app
 
 ## Usage
 - install with `npm install minstall --save`
-- add it as postinstall-script in your package.json:
+- add it as postinstall-script to your package.json:
 - `modules-folder` is optional, and defaults to `modules` if omitted
 ```JavaScript
 "scripts": {
