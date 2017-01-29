@@ -1,3 +1,6 @@
 {
-  "extends": "5minds"
+  "extends": "5minds",
+  "rules": {
+    "object-shorthand":"off"
+  }
 }
