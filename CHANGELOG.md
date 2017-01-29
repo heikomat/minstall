@@ -1,3 +1,18 @@
+# 1.5.0
+### New Features
+- Support for local modules as dependencies in other local modules.  
+  aka. if your local module A requires your local module B, B wont be downloaded, but linked, if the local version of B matches A's dependency
+- Minstall now allows `.` as module-folder  
+  for when you just want to install and link a bunch of modules, that don't have a parent-project (this is experimental, please open an issue if this feature leads to problems)
+
+### Bugfixes
+- Fix handling of scoped local modules
+- local scoped modules are now linked using their scoped-names, no matter what the folder they are actually in is called
+
+### Improvements
+- Updated the version of fs-extra minstall uses to 2.0.0
+- some code cleanup
+
 # 1.4.0
 ### Bugfixes
 - Fix installing a package as dependency with minstall-postinstall (see #16)
