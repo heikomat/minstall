@@ -1,3 +1,7 @@
+# 1.6.0
+### New Features
+- added `--no-link` and `--loglevel` flags
+
 # 1.5.0
 ### New Features
 - Support for local modules as dependencies in other local modules.  
