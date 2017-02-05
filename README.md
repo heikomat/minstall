@@ -55,6 +55,11 @@ my-modular-app
 }
 ```
 
+## Parameters
+Minstall knows the following flags:
+- `--no-link` prevents minstall from linking the local modules to the root-node_modules
+- `--loglevel <loglevel>` sets the loglevel (`error`, `warn`, `info` `verbose`, `debug`, `silly`)
+
 ## In collaboration with
 
 ![5Minds IT-Solutions](img/5minds_logo.png "5Minds IT-Solutions")
