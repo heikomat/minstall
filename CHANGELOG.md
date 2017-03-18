@@ -1,3 +1,10 @@
+# 1.6.1
+### Improvements
+- Better install-as-dependency detection
+- Better compatibility for modules as dependencies, that have local packages with the same names as local packages from the parent
+- Improved cleanup after install-as-dependency
+- Better support for scoped-packages on install-as-dependency
+
 # 1.6.0
 ### New Features
 - added `--no-link` and `--loglevel` flags
