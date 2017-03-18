@@ -1,6 +1,6 @@
 {
   "name": "minstall",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "local module installer",
   "main": "lib/minstall.js",
   "bin": "lib/minstall.js",
@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "bluebird": "^3.4.6",
-    "fs-extra": "^2.0.0",
+    "fs-extra": "^2.1.2",
     "semver": "^5.3.0",
     "winston": "^2.3.1"
   },
