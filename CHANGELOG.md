@@ -1,3 +1,52 @@
+# 2.0.0
+### Bugfixes
+- Fix linking of localy available packages, when they are also a sub-dependency (see below)
+
+### Breaking changes
+This breaking change applies **only** to the following scenario:
+- linking is not disabled
+- at some point somewhere you have a dependency on package xyz
+- xyz has a (sub-)dependency on a package, that is actually localy avaliable (regardless of the version)
+
+**before:**
+
+That sub-dependency gets installed from the registry to the main node_modules
+```
+my-modular-app
+├── modules
+│   ├── database (@2.0.0)
+│   └── tasks (@2.0.0) [requires xyz, which in return requires database@^1.0.0]
+├── node_modules
+│   ├── minstall
+│   ├── database (@1.0.0 from registry)
+│   └── tasks -> ../modules/tasks
+├── index.js
+└── package.json [requires minstall, database@2.0.0 and tasks@2.0.0]
+```
+
+**now (if linking is enabled):**
+
+The localy avaliable package will be linked in the main node_modules
+```
+my-modular-app
+├── modules
+│   ├── database (@2.0.0)
+│   └── tasks (@2.0.0) [requires xyz, which in return requires database@1.0.0]
+├── node_modules
+│   ├── minstall
+│   ├── database ../modules/database
+│   └── tasks -> ../modules/tasks
+├── index.js
+└── package.json [requires minstall, database@2.0.0 and tasks@2.0.0]
+```
+
+notice how before, database@1.0.0 was installed, but the local package not linked, and now
+the local package is linked, but database@1.0.0 not installed.
+
+The reasoning is, that when linking packages, you usually do that for development purposes,
+but without that change, some localy avaliable packages might not get linked
+
+
 # 1.6.1
 ### Improvements
 - Better install-as-dependency detection
@@ -11,9 +60,9 @@
 
 # 1.5.0
 ### New Features
-- Support for local modules as dependencies in other local modules.  
+- Support for local modules as dependencies in other local modules.
   aka. if your local module A requires your local module B, B wont be downloaded, but linked, if the local version of B matches A's dependency
-- Minstall now allows `.` as module-folder  
+- Minstall now allows `.` as module-folder
   for when you just want to install and link a bunch of modules, that don't have a parent-project (this is experimental, please open an issue if this feature leads to problems)
 
 ### Bugfixes
