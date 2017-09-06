@@ -1,3 +1,9 @@
+# 2.0.1
+### Improvements
+- As of npm 5, npm automatically `--save`s dependencies installed with `npm install`.
+  because minstall shouldn't touch the local modules package.json files, this change adds
+  the `--no-save` flag the internaly used `npm install` command
+
 # 2.0.0
 ### Bugfixes
 - Fix linking of localy available packages, when they are also a sub-dependency (see below)
