@@ -1,3 +1,8 @@
+# 2.0.2
+### Bugfixes
+- Minstall now uses the folder name a local module should have according to the modules name
+  to link it to node_modules, instead of its actual folder name ([#26](https://github.com/heikomat/minstall/pull/26))
+
 # 2.0.1
 ### Improvements
 - As of npm 5, npm automatically `--save`s dependencies installed with `npm install`.
