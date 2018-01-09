@@ -122,3 +122,66 @@ isBrokenSymlink(location) {
       });
     });
 },
+
+deleteEmptyFolders(location) {
+  return this.getFolderNames(location)
+    .then((folderNames) => {
+      return Promise.all(folderNames.map((folderName) => {
+        return this.deleteIfEmptyFolder(path.join(location, folderName));
+      }));
+    });
+},
+
+deleteIfEmptyFolder(location) {
+  fs.readdir(location, (error, files) => {
+    if (error) {
+      return Promise.reject(error);
+    }
+
+    if (files.length > 0) {
+      return Promise.resolve();
+    }
+
+    return this.delete(location);
+  });
+},
+
+mkdir(location) {
+  logger.verbose('mkdir', location);
+  return new Promise((resolve, reject) => {
+    fs.mkdirs(location, (error) => {
+      if (error) {
+        return reject();
+      }
+
+      return resolve();
+    });
+  });
+},
+
+deleteMultiple(names, from) {
+  return Promise.all(names.map((name) => {
+    return this.delete(path.join(from, name));
+  }));
+},
+
+moveMultiple(names, from, to) {
+  return Promise.all(names.map((name) => {
+    return this.move(path.join(from, name), path.join(to, name), {
+      overwrite: true,
+    });
+  }));
+},
+
+move(from, to, options) {
+  logger.verbose('move', from, '->', to);
+  return new Promise((resolve, reject) => {
+    fs.move(from, to, options, (error) => {
+      if (error) {
+        return reject(error);
+      }
+
+      return resolve();
+    });
+  });
+},
