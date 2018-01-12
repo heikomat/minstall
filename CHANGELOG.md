@@ -1,3 +1,8 @@
+# 3.0.3
+### Improvements
+Add support to use local modules within the parent-module itself (add
+the local modules to the peerDependencies)
+
 # 3.0.2
 ### Improvements
 Update Readme-example for 3.0.x
