@@ -10,7 +10,7 @@ my-modular-app
 │   │   └── package.json [requires mongoose and lodash]
 │   └── tasks
 │       ├── index.js
-│       └── package.json [requires lodash]
+│       └── package.json [requires lodash and database]
 ├── index.js
 └── package.json [requires express, uses database and tasks]
 ```
@@ -35,14 +35,12 @@ my-modular-app
 │   │   ├── index.js
 │   │   ├── node_modules
 │   │   │   └── lodash -> ../../../node_modules/lodash
+│   │   │   └── database -> ../../database
 │   │   └── package.json
 ├── node_modules
-│   ├── express
 │   ├── lodash
 │   ├── minstall
-│   ├── mongoose
-│   ├── database -> ../modules/database
-│   └── tasks -> ../modules/tasks
+│   └── mongoose
 ├── index.js
 └── package.json
 ```

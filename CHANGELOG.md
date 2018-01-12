@@ -1,3 +1,7 @@
+# 3.0.1
+### Improvements
+fix a small typo in suboptimal-dependency-logs
+
 # 3.0.0
 ### New Features
 - new `--cleanup`-flag (makes minstall remove all node_modules-folders before installing dependencies)
@@ -64,9 +68,7 @@ my-modular-app
 │           └── abc -> ../../../node_modules/abc
 ├── node_modules
 │   ├── abc@2.0.0
-│   ├── minstall
-│   ├── database ../modules/database
-│   └── tasks -> ../modules/tasks
+│   └── minstall
 ├── index.js
 └── package.json [requires minstall, database@2.0.0 and tasks@2.0.0]
 ```
