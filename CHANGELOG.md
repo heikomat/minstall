@@ -1,3 +1,7 @@
+# 3.0.2
+### Improvements
+Update Readme-example for 3.0.x
+
 # 3.0.1
 ### Improvements
 fix a small typo in suboptimal-dependency-logs
