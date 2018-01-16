@@ -10,7 +10,7 @@ my-modular-app
 │   │   └── package.json [requires mongoose and lodash]
 │   └── tasks
 │       ├── index.js
-│       └── package.json [requires lodash]
+│       └── package.json [requires lodash and database]
 ├── index.js
 └── package.json [requires express, uses database and tasks]
 ```
@@ -20,20 +20,27 @@ my-modular-app
 - To require your modules, you would need to either npm-link them, or use a `./modules/`-prefix
 
 #### The solution
-Minstall installs the necessary dependencies to the root-`node_modules`, and symlinks the modules there.  
+Minstall installs the necessary dependencies to the root-`node_modules`, and symlinks the modules there.
 After running `npm install` with minstall as postinstall, the structure looks like this:
 ```
 my-modular-app
 ├── modules
 │   ├── database
+│   │   ├── index.js
+│   │   ├── node_modules
+│   │   │   ├── lodash -> ../../../node_modules/lodash
+│   │   │   └── mongoose -> ../../../node_modules/mongoose
+│   │   └── package.json
 │   └── tasks
+│   │   ├── index.js
+│   │   ├── node_modules
+│   │   │   └── lodash -> ../../../node_modules/lodash
+│   │   │   └── database -> ../../database
+│   │   └── package.json
 ├── node_modules
-│   ├── express
 │   ├── lodash
 │   ├── minstall
-│   ├── mongoose
-│   ├── database -> ../modules/database
-│   └── tasks -> ../modules/tasks
+│   └── mongoose
 ├── index.js
 └── package.json
 ```
@@ -43,6 +50,7 @@ my-modular-app
   - ~~`require('./modules/database')`~~ -> `require('database')`
 - The installation is faster and smaller, because dependencies are only installed once
   - dependencies that are already installed, are not re-downloaded
+    (except for npm5 users, because of npm issue [#16853](https://github.com/npm/npm/issues/16853))
 
 
 ## Usage
@@ -58,6 +66,8 @@ my-modular-app
 ## Parameters
 Minstall knows the following flags:
 - `--no-link` prevents minstall from linking the local modules to the root-node_modules
+- `--clean` makes minstall remove all node_modules-folders before installing dependencies (this is forced for npm5)
+- `--dependency-check-only` makes install print the dependency-check only, without touching any files or installing anything
 - `--loglevel <loglevel>` sets the loglevel (`error`, `warn`, `info` `verbose`, `debug`, `silly`)
 
 ## In collaboration with
