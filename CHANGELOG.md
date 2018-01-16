@@ -1,3 +1,87 @@
+# 3.0.3
+### Improvements
+Add support to use local modules within the parent-module itself (add
+the local modules to the peerDependencies)
+
+# 3.0.2
+### Improvements
+Update Readme-example for 3.0.x
+
+# 3.0.1
+### Improvements
+fix a small typo in suboptimal-dependency-logs
+
+# 3.0.0
+### New Features
+- new `--cleanup`-flag (makes minstall remove all node_modules-folders before installing dependencies)
+- new `--dependency-check-only`-flag (makes install print the dependency-check only, without touching any files or installing anything)
+- optimized detection of optimal dependency-installation-folder
+- npm5-support through optimized dependency installation and forced `--cleanup`-flag
+- parallel installation of conflicting dependencies
+
+### Improvements
+minstall 3 is way faster than minstall 2 because of better detection of optimized
+dependency installation, parallel installation of conflicting dependencies and
+npm5 support.
+
+### Breaking changes
+minstall now works completely different to version 2.0.0. Before you needed to
+add minstall as postinstall to every level of local modules. Now only the
+parent-project needs the minstall-postinstall.
+
+**before:**
+
+modules are found in parent-folders through node-module resolution
+```
+my-modular-app
+├── modules
+│   ├── database (@2.0.0) [requires abc@2.0.0 and tasks]
+│   ├── tasks (@2.0.0) [requires abc@1.0.0, xyz, which in return requires database@1.0.0]
+│   │   └── node_modules
+│   │       └── abc@1.0.0
+│   ├── test1(@2.0.0) [requires abc@1.0.0]
+│   │   └── node_modules
+│   │       └── abc@1.0.0
+│   └── test2(@2.0.0) [requires abc@2.0.0]
+├── node_modules
+│   ├── abc@2.0.0
+│   ├── minstall
+│   ├── database ../modules/database
+│   └── tasks -> ../modules/tasks
+├── index.js
+└── package.json [requires minstall, database@2.0.0 and tasks@2.0.0]
+```
+
+**now:**
+
+the correct versions of the dependency are installed once and linked to the
+destinations. in this example, abc@1.0.0 and abc@2.0.0 are only installed once,
+while abc@1.0.0 would've been installed twice with minstall 2.0.2
+```
+my-modular-app
+├── modules
+│   ├── database (@2.0.0) [requires abc@2.0.0 and tasks]
+│   │   └── node_modules
+│   │       └── abc -> ../../../node_modules/abc
+│   │       └── tasks -> ../../tasks
+│   ├── tasks (@2.0.0) [requires abc@1.0.0, xyz, which in return requires database@1.0.0]
+│   │   └── node_modules
+│   │       ├── abc@1.0.0
+│   │       ├── database@1.0.0
+│   │       └── xyz
+│   ├── test1 (@2.0.0) [requires abc@1.0.0]
+│   │   └── node_modules
+│   │       └── abc -> ../../tasks/node_modules/abc [<- NOT REINSTALLED, BUT LINKED!]
+│   └── test2 (@2.0.0) [requires abc@2.0.0]
+│       └── node_modules
+│           └── abc -> ../../../node_modules/abc
+├── node_modules
+│   ├── abc@2.0.0
+│   └── minstall
+├── index.js
+└── package.json [requires minstall, database@2.0.0 and tasks@2.0.0]
+```
+
 # 2.0.2
 ### Bugfixes
 - Minstall now uses the folder name a local module should have according to the modules name
