@@ -1,3 +1,7 @@
+# 3.0.4
+### Bugfix
+Minstall now no longer wrongully detects prerelease-versions as incompatible (Issue [#31](https://github.com/heikomat/minstall/issues/31))
+
 # 3.0.3
 ### Improvements
 Add support to use local modules within the parent-module itself (add
