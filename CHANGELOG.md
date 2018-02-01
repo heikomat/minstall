@@ -8,6 +8,10 @@ Minstall will now no longer try to hoist non-semver-dependencies, as minstall wo
 ### Improvements
 The error-message when a package.json couldn't be parsed now includes the location of said package.json
 
+# 3.0.4
+### Bugfix
+Minstall now no longer wrongully detects prerelease-versions as incompatible (Issue [#31](https://github.com/heikomat/minstall/issues/31))
+
 # 3.0.3
 ### Improvements
 Add support to use local modules within the parent-module itself (add
