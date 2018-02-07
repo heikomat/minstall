@@ -1,3 +1,13 @@
+# 3.1.0
+### New Features
+- new `--link-only`-flag (makes minstall fix all linked dependencies (including links to local modules))
+
+### Bugfixes
+Minstall will now no longer try to hoist non-semver-dependencies, as minstall wouldn't be able to find them after the installation
+
+### Improvements
+The error-message when a package.json couldn't be parsed now includes the location of said package.json
+
 # 3.0.4
 ### Bugfix
 Minstall now no longer wrongully detects prerelease-versions as incompatible (Issue [#31](https://github.com/heikomat/minstall/issues/31))

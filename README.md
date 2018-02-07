@@ -66,6 +66,7 @@ my-modular-app
 ## Parameters
 Minstall knows the following flags:
 - `--no-link` prevents minstall from linking the local modules to the root-node_modules
+- `--link-only` makes minstall go through the linking-process only, without installing anything
 - `--clean` makes minstall remove all node_modules-folders before installing dependencies (this is forced for npm5)
 - `--dependency-check-only` makes install print the dependency-check only, without touching any files or installing anything
 - `--loglevel <loglevel>` sets the loglevel (`error`, `warn`, `info` `verbose`, `debug`, `silly`)
