@@ -1,3 +1,10 @@
+# 3.2.0
+### New Features
+- new Flag `--assume-local-modules-satisfy-non-semver-dependency-versions` (aka
+  `--trust-local-modules`). Setting this makes minstall assume that a local
+  module satisfies every requested version of that module that is not valid
+  semver (like github-urls and tag-names)
+
 # 3.1.0
 ### New Features
 - new `--link-only`-flag (makes minstall fix all linked dependencies (including links to local modules))
