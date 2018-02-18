@@ -5,6 +5,9 @@
   module satisfies every requested version of that module that is not valid
   semver (like github-urls and tag-names)
 
+### Bugfixes
+- Added a workaround to work around https://github.com/snyamathi/semver-intersect/issues/7
+
 # 3.1.0
 ### New Features
 - new `--link-only`-flag (makes minstall fix all linked dependencies (including links to local modules))
