@@ -8,6 +8,7 @@
 ### Bugfixes
 - Fixes a bug where in rare cases minstall was wrongfully printing error-messages about installed packages not being found
 - Added a workaround to work around https://github.com/snyamathi/semver-intersect/issues/7
+- If an error occurs during installation, then minstall will now actually fail with exit-code 1
 
 # 3.1.0
 ### New Features
