@@ -69,6 +69,8 @@ Minstall knows the following flags:
 - `--link-only` makes minstall go through the linking-process only, without installing anything
 - `--clean` makes minstall remove all node_modules-folders before installing dependencies (this is forced for npm5)
 - `--dependency-check-only` makes install print the dependency-check only, without touching any files or installing anything
+- `--assume-local-modules-satisfy-non-semver-dependency-versions` (aka `--trust-local-modules`) makes minstall assume that a local module satisfies every requested version of that module that is not valid semver (like github-urls and tag-names)
+- `--dependency-check-only` makes install print the dependency-check only, without touching any files or installing anything
 - `--loglevel <loglevel>` sets the loglevel (`error`, `warn`, `info` `verbose`, `debug`, `silly`)
 
 ## In collaboration with

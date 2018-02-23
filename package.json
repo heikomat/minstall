@@ -1,6 +1,6 @@
 {
   "name": "minstall",
-  "version": "3.1.1-1",
+  "version": "3.2.0",
   "description": "local module installer",
   "main": "lib/minstall.js",
   "bin": "lib/minstall.js",
@@ -36,7 +36,7 @@
     "bluebird": "^3.4.6",
     "fs-extra": "^2.1.2",
     "semver": "^5.3.0",
-    "semver-intersect": "^1.3.0",
+    "semver-intersect": "^1.3.1",
     "winston": "^2.3.1"
   },
   "devDependencies": {

@@ -1,3 +1,19 @@
+# 3.2.0
+### New Features
+- new Flag `--assume-local-modules-satisfy-non-semver-dependency-versions` (aka
+  `--trust-local-modules`). Setting this makes minstall assume that a local
+  module satisfies every requested version of that module that is not valid
+  semver (like github-urls and tag-names)
+
+### Bugfixes
+- Fixes a bug where in rare cases minstall was wrongfully printing error-messages about installed packages not being found
+- Added a workaround to work around https://github.com/snyamathi/semver-intersect/issues/7
+- If an error occurs during installation, then minstall will now actually fail with exit-code 1
+
+### Improvements
+minstall will now exit without doing anything when it detects that you're using
+npm 5.7.0. That version of npm has a very serious bug, see https://github.com/npm/npm/issues/19883
+
 # 3.1.0
 ### New Features
 - new `--link-only`-flag (makes minstall fix all linked dependencies (including links to local modules))
