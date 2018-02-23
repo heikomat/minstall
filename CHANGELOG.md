@@ -10,6 +10,10 @@
 - Added a workaround to work around https://github.com/snyamathi/semver-intersect/issues/7
 - If an error occurs during installation, then minstall will now actually fail with exit-code 1
 
+### Improvements
+minstall will now exit without doing anything when it detects that you're using
+npm 5.7.0. That version of npm has a very serious bug, see https://github.com/npm/npm/issues/19883
+
 # 3.1.0
 ### New Features
 - new `--link-only`-flag (makes minstall fix all linked dependencies (including links to local modules))
