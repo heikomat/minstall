@@ -71,7 +71,9 @@ Minstall knows the following flags:
 - `--dependency-check-only` makes install print the dependency-check only, without touching any files or installing anything
 - `--assume-local-modules-satisfy-non-semver-dependency-versions` (aka `--trust-local-modules`) makes minstall assume that a local module satisfies every requested version of that module that is not valid semver (like github-urls and tag-names)
 - `--loglevel <loglevel>` sets the loglevel (`error`, `warn`, `info` `verbose`, `debug`, `silly`)
-- `--no-hoist <dependency>`. makes minstall not hoist that dependency. `<dependency>` has the form name@versionRange, e.g. `--no-hoist aurelia-cli@^0.30.1`. If you omit the versionRange, no version of that dependency will be hoisted. the name can be a glob expression (see [minimatch](https://www.npmjs.com/package/minimatch)), e.g. `--no-hoist aurelia-*`. This is useful for dependencies that don't play nice when hoisted/linked. This flag can be added multiple times.
+- `--no-hoist <dependency>`. makes minstall not hoist that dependency. `<dependency>` has the form name@versionRange, e.g. `--no-hoist aurelia-cli@^0.30.1`. If you omit the versionRange, no version of that dependency will be hoisted.
+
+  The name can be a glob expression (see [minimatch](https://www.npmjs.com/package/minimatch)), e.g. `--no-hoist aurelia-*`. This is useful for dependencies that don't play nice when hoisted/linked. This flag can be added multiple times.
 
 ## In collaboration with
 
