@@ -1,7 +1,7 @@
 # 3.3.0
 ### New Features
 - new Flag `--no-hoist <dependency>`. Setting this makes minstall not hoist that
-  dependency. `<dependecy>` has the form name@versionRange, e.g.
+  dependency. `<dependency>` has the form name@versionRange, e.g.
   `--no-hoist aurelia-cli@^0.30.1`. If you omit the versionRange, no version of
   that dependency will be hoisted. the name can be a glob expression (see
   [minimatch](https://www.npmjs.com/package/minimatch)), e.g.
