@@ -6,7 +6,7 @@
   that dependency will be hoisted. the name can be a glob expression (see
   [minimatch](https://www.npmjs.com/package/minimatch)), e.g.
   `--no-hoist aurelia-*`. This is useful for dependencies that don't play nice
-  when hoisted/linked
+  when hoisted/linked. This flag can be added multiple times.
 
 # 3.2.0
 ### New Features
