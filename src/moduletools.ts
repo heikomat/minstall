@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as semver from 'semver';
+import {DependencyRequestInfo, ModulesAndDependenciesInfo} from './interfaces';
 import {ModuleInfo} from './module_info';
 import {SystemTools} from './systools';
 
@@ -32,7 +33,7 @@ export class ModuleTools {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   }
 
-  public static async getAllModulesAndInstalledDependenciesDeep(location?: string, folderName?: string) {
+  public static async getAllModulesAndInstalledDependenciesDeep(location?: string, folderName?: string): Promise<ModulesAndDependenciesInfo> {
     if (location === null || location === undefined) {
       location = process.cwd();
     }
@@ -41,23 +42,27 @@ export class ModuleTools {
       folderName = this.modulesFolder;
     }
 
-    const result = {
+    const result: ModulesAndDependenciesInfo = {
       modules: [],
       installedDependencies: [],
     };
 
     // get the local modules and the installed modules within the current path
-    const currentLevelModules = await Promise.all([
-      ModuleInfo.loadFromFolder(location, ''),           // get infos about the current module
+    const [
+      currentModuleInfo,
+      installedModulesInfo,
+      localSubmodulesInfo,
+    ] = await Promise.all([
+      ModuleInfo.loadFromFolder(location, ''),    // get infos about the current module
       this.getModules(location, 'node_modules'),  // get infos about installed modules in the current module
       this.getModules(location, folderName),      // get infos about local submodules of the current module
     ]);
 
-    result.modules.push(currentLevelModules[0]);
-    result.installedDependencies = result.installedDependencies.concat(currentLevelModules[1]);
+    result.modules.push(currentModuleInfo);
+    result.installedDependencies = result.installedDependencies.concat(installedModulesInfo);
 
     // recursively get the local modules and installed dependencies of all the other local modules
-    const otherLevelModules: Array<typeof result> = await Promise.all(currentLevelModules[2].map((module: ModuleInfo) => {
+    const otherLevelModules: Array<typeof result> = await Promise.all(localSubmodulesInfo.map((module: ModuleInfo) => {
       return this.getAllModulesAndInstalledDependenciesDeep(module.fullModulePath, folderName);
     }));
 
@@ -78,7 +83,6 @@ export class ModuleTools {
   }
 
   public static async getModules(location: string, rootFolder: string): Promise<Array<ModuleInfo>> {
-    let scopedFolder = [];
     const result: Array<ModuleInfo> = [];
 
     if (rootFolder === null || rootFolder === undefined) {
@@ -87,7 +91,7 @@ export class ModuleTools {
     const modulesPath: string = path.join(location, rootFolder);
     const folderNames: Array<string> = await SystemTools.getFolderNames(modulesPath);
 
-    scopedFolder = folderNames.filter((folderName: string) => {
+    const scopedFolder: Array<string> = folderNames.filter((folderName: string) => {
       return folderName.indexOf('@') === 0;
     });
 
@@ -135,13 +139,13 @@ export class ModuleTools {
     });
   }
 
-  public static async installPackets(targetFolder: string, packets): Promise<void> {
+  public static async installPackets(targetFolder: string, packets: Array<DependencyRequestInfo>): Promise<void> {
 
     if (packets.length === 0) {
       return Promise.resolve();
     }
 
-    const identifier: Array<string> = packets.map((packet) => {
+    const identifier: Array<string> = packets.map((packet: DependencyRequestInfo) => {
       return packet.identifier;
     });
 

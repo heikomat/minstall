@@ -9,6 +9,14 @@ import * as logger from 'winston';
 
 const cwd: string = process.cwd();
 
+import {
+  DependencyInfo,
+  DependencyRequestInfo,
+  DependencyRequests,
+  DependencyTargetFolder,
+  ModulesAndDependenciesInfo,
+  SemverRange,
+} from './interfaces';
 import {ModuleInfo} from './module_info';
 import {ModuleTools} from './moduletools';
 import {SystemTools} from './systools';
@@ -16,10 +24,9 @@ import {UncriticalError} from './uncritical_error';
 
 let commandConcatSymbol: string = ';';
 let isInProjectRoot: boolean = true;
-let localPackage = null;
+let localPackage: ModuleInfo = null;
 
 let installedAsDependency: boolean = false;
-const dependencyInstallLinkedFolders = [];
 let projectFolderName: string = null;
 let linkModules: boolean = true;
 let npmVersion: string = null;
@@ -27,7 +34,7 @@ let cleanup: boolean = false;
 let dependencyCheckOnly: boolean = false;
 let linkOnly: boolean = false;
 let assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean = false;
-const noHoistList = [];
+const noHoistList: Array<DependencyInfo> = [];
 
 function logVerbose(): boolean {
   return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
@@ -40,7 +47,7 @@ function logIfInRoot(message: string): void {
   }
 }
 
-function getLocalPackageInfo() {
+function getLocalPackageInfo(): Promise<ModuleInfo> {
   return ModuleInfo.loadFromFolder(cwd, '');
 }
 
@@ -156,18 +163,18 @@ function setupLogger(): void {
   logger.addColors(colors);
 }
 
-function findRequestedDependencies(localModules) {
-  const requestedDependencies = {};
+function findRequestedDependencies(localModules: Array<ModuleInfo>): DependencyRequests {
+  const requestedDependencies: DependencyRequests = {};
   for (const module of localModules) {
     for (const dependency in module.dependencies) {
-      const requestedVersion = module.dependencies[dependency];
+      const requestedVersion: SemverRange = module.dependencies[dependency];
       if (requestedDependencies[dependency] === undefined) {
         requestedDependencies[dependency] = {};
       }
 
-      let versionFound = false;
+      let versionFound: boolean = false;
       for (const version in requestedDependencies[dependency]) {
-        let intersection = null;
+        let intersection: SemverRange = null;
         try {
           intersection = intersect(version, requestedVersion);
         } catch (error) {
@@ -205,8 +212,12 @@ function findRequestedDependencies(localModules) {
   return requestedDependencies;
 }
 
-function removeAlreadySatisfiedDependencies(requestedDependencies, localModules, alreadyInstalledDependencies) {
-  const result = Object.assign({}, requestedDependencies);
+function removeAlreadySatisfiedDependencies(requestedDependencies: DependencyRequests,
+                                            localModules: Array<ModuleInfo>,
+                                            alreadyInstalledDependencies: Array<ModuleInfo>): DependencyRequests {
+
+  const result: DependencyRequests = {...requestedDependencies};
+
   for (const requestedDependencyName in result) {
     for (const requestedDependencyVersionRange in result[requestedDependencyName]) {
 
@@ -261,7 +272,7 @@ function removeAlreadySatisfiedDependencies(requestedDependencies, localModules,
 
         const shortenedLocalLocation: string = `.${localModule.location.substr(cwd.length)}`;
         const requesterLocations: Array<string> = result[requestedDependencyName][requestedDependencyVersionRange];
-        const shortenedRequesterLocations: Array<string> = requesterLocations.map((locationOfRequestingModule) => {
+        const shortenedRequesterLocations: Array<string> = requesterLocations.map((locationOfRequestingModule: string) => {
           return `.${locationOfRequestingModule.substr(cwd.length)}`;
         });
 
@@ -287,8 +298,8 @@ function removeAlreadySatisfiedDependencies(requestedDependencies, localModules,
   return result;
 }
 
-function dependenciesToArray(dependencies) {
-  const result = [];
+function dependenciesToArray(dependencies: DependencyRequests): Array<DependencyRequestInfo> {
+  const result: Array<DependencyRequestInfo> = [];
 
   for (const dependencyName in dependencies) {
     for (const dependencyVersionRange in dependencies[dependencyName]) {
@@ -304,7 +315,7 @@ function dependenciesToArray(dependencies) {
   return result;
 }
 
-function _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency): void {
+function _dontHoistDependency(optimalDependencyTargetFolder: DependencyTargetFolder, requestedDependency: DependencyRequestInfo): void {
   for (const installationTarget of requestedDependency.requestedBy) {
 
     if (!optimalDependencyTargetFolder[installationTarget]) {
@@ -315,9 +326,10 @@ function _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency
   }
 }
 
-function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstalledDependencies) {
+function determineDependencyTargetFolder(requestedDependencyArray: Array<DependencyRequestInfo>,
+                                         alreadyInstalledDependencies: Array<ModuleInfo>): DependencyTargetFolder {
 
-  const optimalDependencyTargetFolder = {};
+  const optimalDependencyTargetFolder: DependencyTargetFolder = {};
   for (const requestedDependency of requestedDependencyArray) {
 
     const requestedVersionIsValidSemver: string = semver.validRange(requestedDependency.versionRange);
@@ -334,7 +346,7 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
       continue;
     }
 
-    const matchingNoHoistEntry = noHoistList.find((noHoistEntry) => {
+    const matchingNoHoistEntry: DependencyInfo = noHoistList.find((noHoistEntry: DependencyInfo) => {
       // if the name of the requrested dependency doesn't match the noHoistEntry, then this noHoistEntry should
       // not affect the hoisting of that dependency
       if (!minimatch(requestedDependency.name, noHoistEntry.name)) {
@@ -350,7 +362,7 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
       }
 
       try {
-        const intersection = intersect(requestedDependency.versionRange, noHoistEntry.versionRange);
+        const intersection: SemverRange = intersect(requestedDependency.versionRange, noHoistEntry.versionRange);
       } catch (error) {
         // the versions didn't intersect
         return false;
@@ -374,9 +386,12 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
     // gets Installed, even if mutliple modules need it, because in that case
     // it will be symlinked from wherever it is installed. Because of this we
     // just work with the path of the first module that requests this dependency
-    const possiblePathElements: Array<string> = requestedDependency.requestedBy[0].substr(cwd.length).split(path.sep).filter((pathElement) => {
-      return pathElement.length > 0;
-    });
+    const possiblePathElements: Array<string> = requestedDependency.requestedBy[0]
+      .substr(cwd.length)
+      .split(path.sep)
+      .filter((pathElement: string) => {
+        return pathElement.length > 0;
+      });
 
     // because we check the current path first, and then add the path element, the last element won't be checked.
     // because of that we just add another pathElement that will be ignored, but will make the last real
@@ -388,8 +403,8 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
       // is this Dependency already on the list of things to install?
       let installModuleHere: boolean = true;
       for (const modulePath in optimalDependencyTargetFolder) {
-        const modulesToBeInstalled = optimalDependencyTargetFolder[modulePath];
-        const matchingModule = modulesToBeInstalled.find((moduleToBeInstalled) => {
+        const modulesToBeInstalled: Array<DependencyRequestInfo> = optimalDependencyTargetFolder[modulePath];
+        const matchingModule: DependencyRequestInfo = modulesToBeInstalled.find((moduleToBeInstalled: DependencyRequestInfo) => {
           return moduleToBeInstalled.identifier === requestedDependency.identifier;
         });
 
@@ -414,10 +429,11 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
 
       // will any conflicting dependency-versions be installed here?
       if (installModuleHere && optimalDependencyTargetFolder[currentPath]) {
-        const conflictingDependency = optimalDependencyTargetFolder[currentPath].find((toBeInstalledDependency) => {
-          return toBeInstalledDependency.name === requestedDependency.name &&
-                 toBeInstalledDependency.versionRange !== requestedDependency.versionRange;
-        });
+        const conflictingDependency: DependencyRequestInfo = optimalDependencyTargetFolder[currentPath]
+          .find((toBeInstalledDependency: DependencyRequestInfo) => {
+            return toBeInstalledDependency.name === requestedDependency.name &&
+                  toBeInstalledDependency.versionRange !== requestedDependency.versionRange;
+          });
 
         if (conflictingDependency) {
           logger.debug(`${requestedDependency.identifier} can't be installed to ${currentPath}. it'd conflict with the to be installed ${conflictingDependency.identifier}`);
@@ -445,16 +461,18 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
   return optimalDependencyTargetFolder;
 }
 
-function sortDependenciesByRequestCount(requestedDependencyArray) {
-  const result = requestedDependencyArray.splice(0).sort((requestedDependency1, requestedDependency2) => {
-    return requestedDependency2.requestedBy.length - requestedDependency1.requestedBy.length;
-  });
+function sortDependenciesByRequestCount(requestedDependencyArray: Array<DependencyRequestInfo>): Array<DependencyRequestInfo> {
+  const result: Array<DependencyRequestInfo> = requestedDependencyArray
+    .splice(0)
+    .sort((dependency1: DependencyRequestInfo, dependency2: DependencyRequestInfo) => {
+      return dependency1.requestedBy.length - dependency2.requestedBy.length;
+    });
 
   return result;
 }
 
-function printNonOptimalDependencyInfos(requestedDependencies): void {
-  let requestedDependencyArray = dependenciesToArray(requestedDependencies);
+function printNonOptimalDependencyInfos(requestedDependencies: DependencyRequests): void {
+  let requestedDependencyArray: Array<DependencyRequestInfo> = dependenciesToArray(requestedDependencies);
   requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
   let initialMessagePrinted: boolean = false;
 
@@ -470,12 +488,12 @@ function printNonOptimalDependencyInfos(requestedDependencies): void {
     }
 
     // find the most requested version
-    const requestedVersions = requestedDependencyArray.filter((dependency) => {
+    const requestedVersions: Array<DependencyRequestInfo> = requestedDependencyArray.filter((dependency: DependencyRequestInfo) => {
       return dependency.name === requestedDependencyName;
     });
 
-    const mostRequested = requestedVersions.splice(0, 1)[0];
-    const requestedByOtherPackagesString: string = requestedVersions.map((requestedVersion) => {
+    const mostRequested: DependencyRequestInfo = requestedVersions.splice(0, 1)[0];
+    const requestedByOtherPackagesString: string = requestedVersions.map((requestedVersion: DependencyRequestInfo) => {
       const requestedByString: string = requestedVersion.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n|     ');
@@ -497,13 +515,13 @@ function printNonOptimalDependencyInfos(requestedDependencies): void {
   }
 }
 
-function printNonOptimalLocalModuleUsage(localModules, requestedDependencies): void {
-  let requestedDependencyArray = dependenciesToArray(requestedDependencies);
+function printNonOptimalLocalModuleUsage(localModules: Array<ModuleInfo>, requestedDependencies: DependencyRequests): void {
+  let requestedDependencyArray: Array<DependencyRequestInfo> = dependenciesToArray(requestedDependencies);
   requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
   let initialMessagePrinted: boolean = false;
 
   for (const requestedDependencyName in requestedDependencies) {
-    const localVersionOfDependency = localModules.find((localModule) => {
+    const localVersionOfDependency: ModuleInfo = localModules.find((localModule: ModuleInfo) => {
       return localModule.name === requestedDependencyName;
     });
 
@@ -514,7 +532,7 @@ function printNonOptimalLocalModuleUsage(localModules, requestedDependencies): v
     }
 
     // find the most requested version
-    const requestedWithIncompatibleVersion = requestedDependencyArray.filter((dependency) => {
+    const requestedWithIncompatibleVersion: Array<DependencyRequestInfo> = requestedDependencyArray.filter((dependency: DependencyRequestInfo) => {
       // if the name doesn't match then this is not a dependency we're looking for
       if (dependency.name !== localVersionOfDependency.name) {
         return false;
@@ -550,7 +568,7 @@ function printNonOptimalLocalModuleUsage(localModules, requestedDependencies): v
       initialMessagePrinted = true;
     }
 
-    const requestedByOtherPackagesString: string = requestedWithIncompatibleVersion.map((requestedVersion) => {
+    const requestedByOtherPackagesString: string = requestedWithIncompatibleVersion.map((requestedVersion: DependencyRequestInfo) => {
       const requestedByString: string = requestedVersion.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n|     ');
@@ -577,18 +595,19 @@ async function removeContradictingInstalledDependencies(): Promise<Array<void>> 
   // for example: module A requires B in version 2.0.0, and in
   // A/node_modules is a package B, but it is in version 1.0.0.
   // In that case, delete A/node_modules/B
-  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
+  const {
+    modules: localModules,
+    installedDependencies: alreadyInstalledDependencies,
+  } = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   const deletionPromises: Array<Promise<void>> = [];
-  const localModules = result.modules;
-  const alreadyInstalledDependencies = result.installedDependencies;
 
   for (const module of localModules) {
     for (const dependency in module.dependencies) {
       const requestedVersion: string = module.dependencies[dependency];
       const dependencyFolder: string = path.join(module.fullModulePath, 'node_modules');
 
-      const matchingInstalledDependency = alreadyInstalledDependencies.find((installedDependency) => {
+      const matchingInstalledDependency: ModuleInfo = alreadyInstalledDependencies.find((installedDependency: ModuleInfo) => {
         return installedDependency.location === dependencyFolder && installedDependency.name === dependency;
       });
 
@@ -614,17 +633,17 @@ async function removeContradictingInstalledDependencies(): Promise<Array<void>> 
   return Promise.all(deletionPromises);
 }
 
-async function findOptimalDependencyTargetFolder() {
+async function findOptimalDependencyTargetFolder(): Promise<DependencyTargetFolder> {
   // create a list of places where dependencies should go. Remember to not install
   // dependencies that appear in the modules list, except when they won't be linked.
 
-  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
-
-  const localModules = result.modules;
-  const alreadyInstalledDependencies = result.installedDependencies;
+  const {
+    modules: localModules,
+    installedDependencies: alreadyInstalledDependencies,
+  } = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   // Find all dependencies of all modules in the requested versions
-  let requestedDependencies = findRequestedDependencies(localModules);
+  let requestedDependencies: DependencyRequests = findRequestedDependencies(localModules);
 
   printNonOptimalDependencyInfos(requestedDependencies);
   printNonOptimalLocalModuleUsage(localModules, requestedDependencies);
@@ -642,7 +661,7 @@ async function findOptimalDependencyTargetFolder() {
 
   // First we make an array out of the requestedDependencies-object, so we
   // can sort the dependencies by the number of requests
-  let requestedDependencyArray = dependenciesToArray(requestedDependencies);
+  let requestedDependencyArray: Array<DependencyRequestInfo> = dependenciesToArray(requestedDependencies);
   requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
 
   return determineDependencyTargetFolder(requestedDependencyArray, alreadyInstalledDependencies);
@@ -650,10 +669,11 @@ async function findOptimalDependencyTargetFolder() {
 
 async function fixMissingDependenciesWithSymlinks(): Promise<void> {
 
-  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
+  const {
+    modules: localModules,
+    installedDependencies: installedDependencies,
+  } = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
-  const localModules = result.modules;
-  const installedDependencies = result.installedDependencies;
   const symlinkPromises: Array<Promise<void>> = [];
 
   for (const module of localModules) {
@@ -661,7 +681,7 @@ async function fixMissingDependenciesWithSymlinks(): Promise<void> {
       const requestedDependencyVersionRange: string = module.dependencies[dependency];
       // check if the dependency is already installed localy
       let dependencyAlreadyInstalled: boolean = false;
-      let fittingInstalledModule = null;
+      let fittingInstalledModule: ModuleInfo = null;
       for (const installedModule of installedDependencies) {
         if (installedModule.name !== dependency) {
           continue;
@@ -726,11 +746,11 @@ async function fixMissingDependenciesWithSymlinks(): Promise<void> {
   return <Promise<any>> Promise.all(symlinkPromises);
 }
 
-function printInstallationStatus(startedInstallationCount, finishedInstallations): void {
+function printInstallationStatus(startedInstallationCount: number, finishedInstallations: Array<number>): void {
   readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
   const installationStatus: Array<string> = [];
-  for (let index = 0; index < startedInstallationCount; index++) {
+  for (let index: number = 0; index < startedInstallationCount; index++) {
     if (finishedInstallations.indexOf(index) >= 0) {
       installationStatus.push(`${index + 1}: ✓`);
     } else {
@@ -744,7 +764,7 @@ function printInstallationStatus(startedInstallationCount, finishedInstallations
 async function installModuleDependencies(): Promise<void> {
 
   await removeContradictingInstalledDependencies();
-  const targets = await findOptimalDependencyTargetFolder();
+  const targets: DependencyTargetFolder = await findOptimalDependencyTargetFolder();
 
   // targets is an array where each entry has a location and a list of modules that should be installed
   const installPromises: Array<Promise<void>> = [];
@@ -780,9 +800,8 @@ async function installModuleDependencies(): Promise<void> {
 }
 
 async function runPostinstalls(): Promise<void> {
-  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
+  const {modules: localModules} = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
-  const localModules = result.modules;
   const postinstallPromises: Array<Promise<string>> = [];
 
   for (const module of localModules) {
@@ -805,10 +824,10 @@ async function runPostinstalls(): Promise<void> {
 }
 
 async function deleteLinkedLocalModules(): Promise<void> {
-  const moduleInfos = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
+  const moduleInfos: ModulesAndDependenciesInfo = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   // tslint:disable-next-line:no-any
-  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo) => {
+  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo: ModuleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
     return SystemTools.delete(path.join(cwd, 'node_modules', moduleInfo.folderName));
@@ -822,7 +841,7 @@ function parseProcessArguments(): void {
     } else if (process.argv[i] === '--isChildProcess') {
       isInProjectRoot = false;
     } else if (process.argv[i] === '--loglevel') {
-      logger.level = process.argv[i + 1];
+      (<any> logger).level = process.argv[i + 1];
       i++;
     } else if (process.argv[i] === '--no-link') {
       linkModules = false;
@@ -835,7 +854,7 @@ function parseProcessArguments(): void {
     } else if (process.argv[i] === '--link-only') {
       linkOnly = true;
     } else if (process.argv[i] === '--no-hoist') {
-      const noHoistEntry = process.argv[i + 1].split('@');
+      const noHoistEntry: Array<string> = process.argv[i + 1].split('@');
       noHoistList.push({
         name: noHoistEntry[0],
         versionRange: noHoistEntry[1],
@@ -848,10 +867,10 @@ function parseProcessArguments(): void {
 }
 
 async function cleanupDependencies(): Promise<void> {
-  const moduleInfos = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
+  const moduleInfos: ModulesAndDependenciesInfo = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   // tslint:disable-next-line:no-any
-  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo) => {
+  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo: ModuleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
     return SystemTools.delete(path.join(moduleInfo.fullModulePath, 'node_modules'));
@@ -883,9 +902,9 @@ async function run(): Promise<void> {
   logger.debug('project folder name:', projectFolderName);
 
   if (dependencyCheckOnly) {
-    const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
-    const localModules = result.modules;
-    const requestedDependencies = findRequestedDependencies(localModules);
+    const {modules: localModules} = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
+
+    const requestedDependencies: DependencyRequests = findRequestedDependencies(localModules);
     printNonOptimalDependencyInfos(requestedDependencies);
     printNonOptimalLocalModuleUsage(localModules, requestedDependencies);
 
