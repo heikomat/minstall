@@ -1,4 +1,3 @@
-import * as Promise from 'bluebird';
 import {exec} from 'child_process';
 import * as fs from 'fs-extra';
 import * as path from 'path';
@@ -46,10 +45,7 @@ export const systools = {
     });
   },
 
-  runCommand(command, silent) {
-    if (silent === undefined || silent === null) {
-      silent = false;
-    }
+  runCommand(command, silent = false) {
 
     logger.verbose('running command', command);
     return new Promise((resolve, reject) => {
@@ -146,8 +142,9 @@ export const systools = {
     }
 
     if (runSeconds < 10) {
-      runSeconds = `0${runSeconds}`;
+      return `${runMinutes}:0${runSeconds} minutes`;
     }
+
     return `${runMinutes}:${runSeconds} minutes`;
   },
 };

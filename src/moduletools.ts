@@ -1,4 +1,3 @@
-import * as Promise from 'bluebird';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as semver from 'semver';
@@ -33,7 +32,7 @@ export const moduletools = {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   },
 
-  async getAllModulesAndInstalledDependenciesDeep(location, folderName) {
+  async getAllModulesAndInstalledDependenciesDeep(location?, folderName?) {
     if (location === null || location === undefined) {
       location = process.cwd();
     }
@@ -125,7 +124,9 @@ export const moduletools = {
 
   verifyModule(location, name) {
     return new Promise((resolve, reject) => {
-      let mode = fs.F_OK;
+
+      // the constant is called fs.F_OK in node < 6, and fs.constants.F_OK in node >= 6
+      let mode = (<any> fs).F_OK;
       if (fs.constants) {
         mode = fs.constants.F_OK;
       }

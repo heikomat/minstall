@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import * as Promise from 'bluebird';
 import * as minimatch from 'minimatch';
 import * as os from 'os';
 import * as path from 'path';
@@ -52,7 +51,7 @@ async function checkStartConditions() {
     systools.runCommand('npm --version', true),
   ]);
 
-  const folderName = results[0];
+  let folderName = results[0];
   localPackage = results[1];
   npmVersion = results[2];
 
@@ -92,7 +91,7 @@ async function checkStartConditions() {
     logger.debug('project folder has node_modules-folder');
   }
 
-  let folderName = '.';
+  folderName = '.';
   if (moduletools.modulesFolder !== '.') {
     folderName = await systools.verifyFolderName(cwd, moduletools.modulesFolder);
   }
@@ -720,7 +719,7 @@ async function fixMissingDependenciesWithSymlinks() {
 }
 
 function printInstallationStatus(startedInstallationCount, finishedInstallations) {
-  readline.clearLine(process.stdout);
+  readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
   const installationStatus = [];
   for (let index = 0; index < startedInstallationCount; index++) {
@@ -756,7 +755,7 @@ async function installModuleDependencies() {
         printInstallationStatus(startedInstallationCount, finishedInstallations);
       }));
   }
-  printInstallationStatus(targets.length, []);
+  printInstallationStatus(Object.keys(targets).length, []);
 
   await Promise.all(installPromises);
 
@@ -771,7 +770,7 @@ async function installModuleDependencies() {
   // this has low priority, as this is a rare edge-case with no real negative side-effects except a tiny bit bigger folder-size
 }
 
-async function runPostinstalls(modules) {
+async function runPostinstalls() {
   const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
   const localModules = result.modules;

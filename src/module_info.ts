@@ -1,10 +1,37 @@
-import * as Promise from 'bluebird';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export interface DependencyEntry {
+  [dependency: string]: string;
+}
+
+export interface BinEntry {
+  [dependency: string]: string;
+}
+
 export class ModuleInfo {
 
-  constructor(location, folderName, name, version, dependencies, postinstallCommand, bin) {
+  private _location: string;
+  private _realFolderName: string;
+  private _folderName: string;
+  private _name: string;
+  private _version: string;
+  private _dependencies: [DependencyEntry];
+  private _postinstallCommand: string;
+  private _isScoped: boolean = false;
+  private _fullModulePath: string;
+  private _bin: {[name: string]: string};
+
+  constructor(
+    location: string,
+    folderName: string,
+    name: string,
+    version: string,
+    dependencies: [DependencyEntry],
+    postinstallCommand: string,
+    bin: string | BinEntry,
+  ) {
+
     this._location = location;
     this._realFolderName = folderName;
     this._folderName = name;
@@ -14,15 +41,15 @@ export class ModuleInfo {
     this._postinstallCommand = postinstallCommand;
     this._isScoped = false;
     this._fullModulePath = path.join(this.location, this.realFolderName);
-    this._bin = bin;
-    if (this._bin === undefined || this._bin === null) {
-      this._bin = {};
-    }
 
-    if (typeof this._bin === 'string') {
+    if (bin === undefined || bin === null) {
+      this._bin = {};
+    } else if (typeof bin === 'string') {
       this._bin = {
         [name]: bin,
       };
+    } else {
+      this._bin = bin;
     }
 
     if (name.charAt(0) === '@') {
@@ -78,10 +105,6 @@ export class ModuleInfo {
 
   public static loadFromFolder(rootFolder, moduleFolder) {
     return new Promise((resolve, reject) => {
-      if (rootFolder === null || rootFolder === undefined) {
-        rootFolder = this.modulesFolder;
-      }
-
       const packagePath = path.join(rootFolder, moduleFolder, 'package.json');
 
       fs.readFile(packagePath, 'utf8', (error, data) => {
