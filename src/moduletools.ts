@@ -34,15 +34,8 @@ export class ModuleTools {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   }
 
-  public static async getAllModulesAndInstalledDependenciesDeep(location?: string, folderName?: string): Promise<ModulesAndDependenciesInfo> {
-    if (location === null || location === undefined) {
-      location = process.cwd();
-    }
-
-    if (folderName === null || folderName === undefined) {
-      folderName = this.modulesFolder;
-    }
-
+  public static async getAllModulesAndInstalledDependenciesDeep(location: string = process.cwd(),
+                                                                folderName: string = this.modulesFolder): Promise<ModulesAndDependenciesInfo> {
     const result: ModulesAndDependenciesInfo = {
       modules: [],
       installedDependencies: [],
@@ -83,12 +76,9 @@ export class ModuleTools {
     return result;
   }
 
-  public static async getModules(location: string, rootFolder: string): Promise<Array<ModuleInfo>> {
+  public static async getModules(location: string, rootFolder: string = this.modulesFolder): Promise<Array<ModuleInfo>> {
     const result: Array<ModuleInfo> = [];
 
-    if (rootFolder === null || rootFolder === undefined) {
-      rootFolder = this.modulesFolder;
-    }
     const modulesPath: string = path.join(location, rootFolder);
     const folderNames: Array<string> = await SystemTools.getFolderNames(modulesPath);
 
