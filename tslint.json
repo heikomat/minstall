@@ -1,0 +1,3 @@
+{
+  "extends": "tslint-eslint-config-5minds"
+}
