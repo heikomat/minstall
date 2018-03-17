@@ -100,21 +100,19 @@ export const moduletools = {
     });
 
     // we can't open too many files at once :( read them sequentially
-    const moduleInfos = [];
     for (const moduleName of modules) {
       const module = await ModuleInfo.loadFromFolder(path.join(location, rootFolder), moduleName);
-      moduleInfos.push(module);
+      result.push(module);
     }
 
-    if (scopedFolder.length === 0) {
-      return [];
+    let scopedModules = [];
+    if (scopedFolder.length > 0) {
+      scopedModules = await Promise.all(scopedFolder.map((folderName) => {
+        return this.getModules(path.join(location, rootFolder), folderName);
+      }));
     }
 
-    const scopedModules = await Promise.all(scopedFolder.map((folderName) => {
-      return this.getModules(path.join(location, rootFolder), folderName);
-    }));
-
-    return result.concat([].concat.apply([], scopedModules));
+    return result.concat([].concat(...scopedModules));
   },
 
   verifyModule(location, name) {
