@@ -1,6 +1,6 @@
 import * as Promise from 'bluebird';
 import {exec} from 'child_process';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import * as path from 'path';
 
 let logger = null;
@@ -76,8 +76,8 @@ export const systools = {
     });
   },
 
-  getFolderNames(folderPath) {
-    return new Promise((resolve, reject) => {
+  async getFolderNames(folderPath) {
+    const folderNames = await new Promise((resolve, reject) => {
 
       fs.readdir(folderPath, (error, files) => {
         if (error) {
@@ -92,13 +92,11 @@ export const systools = {
           return this.verifyFolderName(folderPath, file);
         })));
       });
-    })
-      .then((folderNames) => {
+    });
 
-        return folderNames.filter((folderName) => {
-          return folderName !== null;
-        });
-      });
+    return folderNames.filter((folderName) => {
+      return folderName !== null;
+    });
   },
 
   verifyFolderName(folderPath, folderName) {

@@ -44,87 +44,83 @@ function getLocalPackageInfo() {
   return ModuleInfo.loadFromFolder(cwd, '');
 }
 
-function checkStartConditions() {
+async function checkStartConditions() {
   logger.debug('checking start conditions');
-  return Promise.all([
+  let results = await Promise.all([
     systools.verifyFolderName(cwd, 'node_modules'),
     getLocalPackageInfo(),
     systools.runCommand('npm --version', true),
-  ])
-    .then((results) => {
-      const folderName = results[0];
-      localPackage = results[1];
-      npmVersion = results[2];
+  ]);
 
-      if (semver.satisfies(npmVersion, '5.7.0')) {
-        logger.error(`You're using npm 5.7.0. Do not use this version, it has a critical bug that is fixed in 5.7.1. See npm-issue #19883 for more info`);
-        process.exit(1);
-      }
+  const folderName = results[0];
+  localPackage = results[1];
+  npmVersion = results[2];
 
-      // npm 5 workaround until npm-issue #16853 is fixed replace the if-confition
-      // and log when npm >= 5.7.1 is confirmed working without that workaround
-      // if (semver.satisfies(npmVersion, '>=5.0.0 <5.7.0')) {
-      if (semver.major(npmVersion) === 5) {
-        // logger.info('npm >=5.0.0 <5.7.0 detected. forcing --cleanup');
-        logger.info('npm 5 detected. forcing --cleanup');
-        cleanup = true;
-      }
+  if (semver.satisfies(npmVersion, '5.7.0')) {
+    logger.error(`You're using npm 5.7.0. Do not use this version, it has a critical bug that is fixed in 5.7.1. See npm-issue #19883 for more info`);
+    process.exit(1);
+  }
 
-      const pathParts = cwd.split(path.sep);
-      let parentFolder = pathParts[pathParts.length - 2];
-      if (localPackage.isScoped) {
-        parentFolder = pathParts[pathParts.length - 3];
-      }
+  // npm 5 workaround until npm-issue #16853 is fixed replace the if-confition
+  // and log when npm >= 5.7.1 is confirmed working without that workaround
+  // if (semver.satisfies(npmVersion, '>=5.0.0 <5.7.0')) {
+  if (semver.major(npmVersion) === 5) {
+    // logger.info('npm >=5.0.0 <5.7.0 detected. forcing --cleanup');
+    logger.info('npm 5 detected. forcing --cleanup');
+    cleanup = true;
+  }
 
-      if (parentFolder === 'node_modules') {
-        logger.debug('project is in a node_modules folder. It\'s therefore installed as a dependency');
-        installedAsDependency = true;
-      }
+  const pathParts = cwd.split(path.sep);
+  let parentFolder = pathParts[pathParts.length - 2];
+  if (localPackage.isScoped) {
+    parentFolder = pathParts[pathParts.length - 3];
+  }
 
-      if (folderName === null) {
-        logger.debug('project folder has no node_modules-folder');
+  if (parentFolder === 'node_modules') {
+    logger.debug('project is in a node_modules folder. It\'s therefore installed as a dependency');
+    installedAsDependency = true;
+  }
 
-        if (!installedAsDependency) {
-          logger.debug('project is not in a node_modules folder');
-          throw new UncriticalError('minstall started from outside the project-root. aborting.');
-        }
-      } else {
-        logger.debug('project folder has node_modules-folder');
-      }
+  if (folderName === null) {
+    logger.debug('project folder has no node_modules-folder');
 
-      if (moduletools.modulesFolder === '.') {
-        return Promise.resolve('.');
-      }
-      return systools.verifyFolderName(cwd, moduletools.modulesFolder);
-    })
-    .then((folderName) => {
-      if (folderName === null) {
-        throw new UncriticalError(`${moduletools.modulesFolder} not found, thus minstall is done :)`);
-      }
+    if (!installedAsDependency) {
+      logger.debug('project is not in a node_modules folder');
+      throw new UncriticalError('minstall started from outside the project-root. aborting.');
+    }
+  } else {
+    logger.debug('project folder has node_modules-folder');
+  }
 
-      if (installedAsDependency) {
-        return null;
-      }
+  let folderName = '.';
+  if (moduletools.modulesFolder !== '.') {
+    folderName = await systools.verifyFolderName(cwd, moduletools.modulesFolder);
+  }
 
-      return Promise.all([
-        systools.isSymlink(path.join(cwd, 'node_modules')),
-        getLocalPackageInfo(),
-      ]);
-    })
-    .then((results) => {
+  if (folderName === null) {
+    throw new UncriticalError(`${moduletools.modulesFolder} not found, thus minstall is done :)`);
+  }
 
-      if (installedAsDependency) {
-        return;
-      }
+  if (installedAsDependency) {
+    return null;
+  }
 
-      if (isInProjectRoot) {
-        isInProjectRoot = !results[0];
-      }
+  results = await Promise.all([
+    systools.isSymlink(path.join(cwd, 'node_modules')),
+    getLocalPackageInfo(),
+  ]);
 
-      if (isInProjectRoot && !localPackage.dependencies.minstall) {
-        throw new UncriticalError('minstall started from outside the project-root. aborting.');
-      }
-    });
+  if (installedAsDependency) {
+    return;
+  }
+
+  if (isInProjectRoot) {
+    isInProjectRoot = !results[0];
+  }
+
+  if (isInProjectRoot && !localPackage.dependencies.minstall) {
+    throw new UncriticalError('minstall started from outside the project-root. aborting.');
+  }
 }
 
 function setupLogger() {
@@ -573,158 +569,154 @@ function printNonOptimalLocalModuleUsage(localModules, requestedDependencies) {
   }
 }
 
-function removeContradictingInstalledDependencies() {
+async function removeContradictingInstalledDependencies() {
   // remove all packages that contradict a modules package.json.
   // for example: module A requires B in version 2.0.0, and in
   // A/node_modules is a package B, but it is in version 1.0.0.
   // In that case, delete A/node_modules/B
-  return moduletools.getAllModulesAndInstalledDependenciesDeep()
-    .then((result) => {
+  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
-      const deletionPromises = [];
-      const localModules = result.modules;
-      const alreadyInstalledDependencies = result.installedDependencies;
+  const deletionPromises = [];
+  const localModules = result.modules;
+  const alreadyInstalledDependencies = result.installedDependencies;
 
-      for (const module of localModules) {
-        for (const dependency in module.dependencies) {
-          const requestedVersion = module.dependencies[dependency];
-          const dependencyFolder = path.join(module.fullModulePath, 'node_modules');
+  for (const module of localModules) {
+    for (const dependency in module.dependencies) {
+      const requestedVersion = module.dependencies[dependency];
+      const dependencyFolder = path.join(module.fullModulePath, 'node_modules');
 
-          const matchingInstalledDependency = alreadyInstalledDependencies.find((installedDependency) => {
-            return installedDependency.location === dependencyFolder && installedDependency.name === dependency;
-          });
+      const matchingInstalledDependency = alreadyInstalledDependencies.find((installedDependency) => {
+        return installedDependency.location === dependencyFolder && installedDependency.name === dependency;
+      });
 
-          // The requested dependency is not yet installed, so it can't contradict the version requested
-          // in the package.json of the module
-          if (matchingInstalledDependency === undefined || matchingInstalledDependency === null) {
-            continue;
-          }
-
-          // The requested dependency is installed, but its version satisfied the version requested
-          // in the package.json of the module, so we don't need to remove it.
-          if (semver.satisfies(matchingInstalledDependency.version, requestedVersion)) {
-            continue;
-          }
-
-          // The requested dependency is installed AND it does not satisfy the version requested
-          // in the package.json of the module. We need to remove it!
-          logger.debug(`${module.name} wants ${dependency}@${requestedVersion}, but it has version ${matchingInstalledDependency.version} installed in its node_modules. Deleting the contradicting dependency!`);
-          deletionPromises.push(systools.delete(matchingInstalledDependency.fullModulePath));
-        }
+      // The requested dependency is not yet installed, so it can't contradict the version requested
+      // in the package.json of the module
+      if (matchingInstalledDependency === undefined || matchingInstalledDependency === null) {
+        continue;
       }
 
-      return Promise.all(deletionPromises);
-    });
+      // The requested dependency is installed, but its version satisfied the version requested
+      // in the package.json of the module, so we don't need to remove it.
+      if (semver.satisfies(matchingInstalledDependency.version, requestedVersion)) {
+        continue;
+      }
+
+      // The requested dependency is installed AND it does not satisfy the version requested
+      // in the package.json of the module. We need to remove it!
+      logger.debug(`${module.name} wants ${dependency}@${requestedVersion}, but it has version ${matchingInstalledDependency.version} installed in its node_modules. Deleting the contradicting dependency!`);
+      deletionPromises.push(systools.delete(matchingInstalledDependency.fullModulePath));
+    }
+  }
+
+  return Promise.all(deletionPromises);
 }
 
-function findOptimalDependencyTargetFolder() {
+async function findOptimalDependencyTargetFolder() {
   // create a list of places where dependencies should go. Remember to not install
   // dependencies that appear in the modules list, except when they won't be linked.
 
-  return moduletools.getAllModulesAndInstalledDependenciesDeep()
-    .then((result) => {
-      const localModules = result.modules;
-      const alreadyInstalledDependencies = result.installedDependencies;
+  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
-      // Find all dependencies of all modules in the requested versions
-      let requestedDependencies = findRequestedDependencies(localModules);
+  const localModules = result.modules;
+  const alreadyInstalledDependencies = result.installedDependencies;
 
-      printNonOptimalDependencyInfos(requestedDependencies);
-      printNonOptimalLocalModuleUsage(localModules, requestedDependencies);
+  // Find all dependencies of all modules in the requested versions
+  let requestedDependencies = findRequestedDependencies(localModules);
 
-      // remove all dependencies that are already satisfied by the current
-      // installation or will be satisfied by linked local modules
-      requestedDependencies = removeAlreadySatisfiedDependencies(requestedDependencies, localModules, alreadyInstalledDependencies);
+  printNonOptimalDependencyInfos(requestedDependencies);
+  printNonOptimalLocalModuleUsage(localModules, requestedDependencies);
 
-      // now we know exactly what dependencies are missing where
-      // next: calculate the optimal installation-folders, so that as few installs
-      // as possible are done. The optimal folder is as close to the root folder
-      // as possible without causing version conflicts within a folder.
-      // To achieve this we start at the root-folder, and go deeper until we
-      // find a folder that has no conflicting dependencies
+  // remove all dependencies that are already satisfied by the current
+  // installation or will be satisfied by linked local modules
+  requestedDependencies = removeAlreadySatisfiedDependencies(requestedDependencies, localModules, alreadyInstalledDependencies);
 
-      // First we make an array out of the requestedDependencies-object, so we
-      // can sort the dependencies by the number of requests
-      let requestedDependencyArray = dependenciesToArray(requestedDependencies);
-      requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
+  // now we know exactly what dependencies are missing where
+  // next: calculate the optimal installation-folders, so that as few installs
+  // as possible are done. The optimal folder is as close to the root folder
+  // as possible without causing version conflicts within a folder.
+  // To achieve this we start at the root-folder, and go deeper until we
+  // find a folder that has no conflicting dependencies
 
-      return determineDependencyTargetFolder(requestedDependencyArray, alreadyInstalledDependencies);
-    });
+  // First we make an array out of the requestedDependencies-object, so we
+  // can sort the dependencies by the number of requests
+  let requestedDependencyArray = dependenciesToArray(requestedDependencies);
+  requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
+
+  return determineDependencyTargetFolder(requestedDependencyArray, alreadyInstalledDependencies);
 }
 
-function fixMissingDependenciesWithSymlinks() {
+async function fixMissingDependenciesWithSymlinks() {
 
-  return moduletools.getAllModulesAndInstalledDependenciesDeep()
-    .then((result) => {
-      const localModules = result.modules;
-      const installedDependencies = result.installedDependencies;
-      const symlinkPromises = [];
+  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
-      for (const module of localModules) {
-        for (const dependency in module.dependencies) {
-          const requestedDependencyVersionRange = module.dependencies[dependency];
-          // check if the dependency is already installed localy
-          let dependencyAlreadyInstalled = false;
-          let fittingInstalledModule = null;
-          for (const installedModule of installedDependencies) {
-            if (installedModule.name !== dependency) {
-              continue;
-            }
+  const localModules = result.modules;
+  const installedDependencies = result.installedDependencies;
+  const symlinkPromises = [];
 
-            if (installedModule.fullModulePath === path.join(module.fullModulePath, 'node_modules', installedModule.folderName)) {
-              fittingInstalledModule = installedModule;
-              dependencyAlreadyInstalled = true;
-              break;
-            } else if (semver.satisfies(installedModule.version, requestedDependencyVersionRange)) {
-              fittingInstalledModule = installedModule;
-            }
-          }
+  for (const module of localModules) {
+    for (const dependency in module.dependencies) {
+      const requestedDependencyVersionRange = module.dependencies[dependency];
+      // check if the dependency is already installed localy
+      let dependencyAlreadyInstalled = false;
+      let fittingInstalledModule = null;
+      for (const installedModule of installedDependencies) {
+        if (installedModule.name !== dependency) {
+          continue;
+        }
 
-          // when no installed module was found, see if a local module fits the dependency
-          // but only if local modules are supposed to be linked
-          // this overwrites otherwise found dependencies if they are not installed
-          // directly in the modules node_modules-folder
-          // in short, the order is: direct install > local module > indirect install
-          if ((!fittingInstalledModule || !dependencyAlreadyInstalled) && linkModules) {
-            for (const localModule of localModules) {
-
-              const rangeIsValidAndSatisfied = semver.validRange(requestedDependencyVersionRange) && semver.satisfies(localModule.version, requestedDependencyVersionRange);
-              const rangeIsInvalidAndAssumedToBeSatisfied = !semver.validRange(requestedDependencyVersionRange) && assumeLocalModulesSatisfyNonSemverDependencyVersions;
-              const dependencyIsSatisfiedByLocalModule = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
-
-              if (localModule.name !== dependency || !dependencyIsSatisfiedByLocalModule) {
-                continue;
-              }
-
-              fittingInstalledModule = localModule;
-              break;
-            }
-          }
-
-          if (!dependencyAlreadyInstalled) {
-            if (!fittingInstalledModule) {
-              logger.error(`NO INSTALLATION FOUND FOR DEPENDENCY ${dependency} ON ${module.fullModulePath}. This shouldn't happen!`);
-            } else {
-              // simlink the dependency
-              const sourceDependencyPath = fittingInstalledModule.fullModulePath;
-              const targetDependencyPath = path.join(module.fullModulePath, 'node_modules', fittingInstalledModule.folderName);
-              symlinkPromises.push(systools.link(sourceDependencyPath, targetDependencyPath));
-
-              // create all the .bin-symlinks
-              // TODO: this won't work for packets that define a custom bin-folder.
-              // This is so super-rare though, that it's not important for now
-              for (const binEntry in fittingInstalledModule.bin) {
-                const sourceFile = path.join(fittingInstalledModule.fullModulePath, fittingInstalledModule.bin[binEntry]);
-                const targetLink = path.join(module.fullModulePath, 'node_modules', '.bin', binEntry);
-                symlinkPromises.push(systools.link(sourceFile, targetLink));
-              }
-            }
-          }
+        if (installedModule.fullModulePath === path.join(module.fullModulePath, 'node_modules', installedModule.folderName)) {
+          fittingInstalledModule = installedModule;
+          dependencyAlreadyInstalled = true;
+          break;
+        } else if (semver.satisfies(installedModule.version, requestedDependencyVersionRange)) {
+          fittingInstalledModule = installedModule;
         }
       }
 
-      return Promise.all(symlinkPromises);
-    });
+      // when no installed module was found, see if a local module fits the dependency
+      // but only if local modules are supposed to be linked
+      // this overwrites otherwise found dependencies if they are not installed
+      // directly in the modules node_modules-folder
+      // in short, the order is: direct install > local module > indirect install
+      if ((!fittingInstalledModule || !dependencyAlreadyInstalled) && linkModules) {
+        for (const localModule of localModules) {
+
+          const rangeIsValidAndSatisfied = semver.validRange(requestedDependencyVersionRange) && semver.satisfies(localModule.version, requestedDependencyVersionRange);
+          const rangeIsInvalidAndAssumedToBeSatisfied = !semver.validRange(requestedDependencyVersionRange) && assumeLocalModulesSatisfyNonSemverDependencyVersions;
+          const dependencyIsSatisfiedByLocalModule = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
+
+          if (localModule.name !== dependency || !dependencyIsSatisfiedByLocalModule) {
+            continue;
+          }
+
+          fittingInstalledModule = localModule;
+          break;
+        }
+      }
+
+      if (!dependencyAlreadyInstalled) {
+        if (!fittingInstalledModule) {
+          logger.error(`NO INSTALLATION FOUND FOR DEPENDENCY ${dependency} ON ${module.fullModulePath}. This shouldn't happen!`);
+        } else {
+          // simlink the dependency
+          const sourceDependencyPath = fittingInstalledModule.fullModulePath;
+          const targetDependencyPath = path.join(module.fullModulePath, 'node_modules', fittingInstalledModule.folderName);
+          symlinkPromises.push(systools.link(sourceDependencyPath, targetDependencyPath));
+
+          // create all the .bin-symlinks
+          // TODO: this won't work for packets that define a custom bin-folder.
+          // This is so super-rare though, that it's not important for now
+          for (const binEntry in fittingInstalledModule.bin) {
+            const sourceFile = path.join(fittingInstalledModule.fullModulePath, fittingInstalledModule.bin[binEntry]);
+            const targetLink = path.join(module.fullModulePath, 'node_modules', '.bin', binEntry);
+            symlinkPromises.push(systools.link(sourceFile, targetLink));
+          }
+        }
+      }
+    }
+  }
+
+  return Promise.all(symlinkPromises);
 }
 
 function printInstallationStatus(startedInstallationCount, finishedInstallations) {
@@ -741,82 +733,76 @@ function printInstallationStatus(startedInstallationCount, finishedInstallations
   process.stdout.write(installationStatus.join(' '));
 }
 
-function installModuleDependencies() {
+async function installModuleDependencies() {
 
-  return removeContradictingInstalledDependencies()
-    .then(() => {
-      return findOptimalDependencyTargetFolder();
-    })
-    .then((targets) => {
+  await removeContradictingInstalledDependencies();
+  const targets = await findOptimalDependencyTargetFolder();
 
-      // targets is an array where each entry has a location and a list of modules that should be installed
-      const installPromises = [];
+  // targets is an array where each entry has a location and a list of modules that should be installed
+  const installPromises = [];
 
-      let startedInstallationCount = 0;
-      const finishedInstallations = [];
-      for (const targetFolder in targets) {
+  let startedInstallationCount = 0;
+  const finishedInstallations = [];
+  for (const targetFolder in targets) {
 
-        const shortTargetFolder = `.${targetFolder.substr(process.cwd().length)}`;
-        const installationIndex = startedInstallationCount;
-        startedInstallationCount++;
+    const shortTargetFolder = `.${targetFolder.substr(process.cwd().length)}`;
+    const installationIndex = startedInstallationCount;
+    startedInstallationCount++;
 
-        logIfInRoot(`${installationIndex + 1}. installing ${targets[targetFolder].length} dependencies to ${shortTargetFolder}`);
-        installPromises.push(moduletools.installPackets(targetFolder, targets[targetFolder])
-          .then(() => {
-            finishedInstallations.push(installationIndex);
-            printInstallationStatus(startedInstallationCount, finishedInstallations);
-          }));
-      }
-      printInstallationStatus(targets.length, []);
-
-      return Promise.all(installPromises);
-    })
-    .then(() => {
-      process.stdout.write('\n');
-      // Now we're in a state where every dependency required by any local module
-      // is installed at least somewhere. To make the modules find their dependencies
-      // we now symlink them to the modules
-      return fixMissingDependenciesWithSymlinks();
-
-      // TODO: delete all unnecessary double-installs (when a and b both had a sub-dependency c that thus got installed twice)
-      // this has low priority, as this is a rare edge-case with no real negative side-effects except a tiny bit bigger folder-size
-    });
-}
-
-function runPostinstalls(modules) {
-  return moduletools.getAllModulesAndInstalledDependenciesDeep()
-    .then((result) => {
-      const localModules = result.modules;
-      const postinstallPromises = [];
-
-      for (const module of localModules) {
-        if (module.fullModulePath === cwd) {
-          logger.debug('skipping the postinstall of the parent-module');
-          continue;
-        }
-
-        if (!module.postinstallCommand) {
-          logger.debug(`skipping the postinstall of ${module.name}. it has no postinstall script.`);
-          continue;
-        }
-
-        logger.debug(`running postinstall of ${module.name}`);
-        postinstallPromises.push(systools.runCommand(`cd ${module.fullModulePath}${commandConcatSymbol} ${module.postinstallCommand}`));
-      }
-
-      return Promise.all(postinstallPromises);
-    });
-}
-
-function deleteLinkedLocalModules() {
-  return moduletools.getAllModulesAndInstalledDependenciesDeep()
-    .then((moduleInfos) => {
-      return Promise.all(moduleInfos.modules.map((moduleInfo) => {
-        // local modules should be linked using the folder-names they should have,
-        // no matter what folder-name they actually have, therefore don't use realFolderName here
-        return systools.delete(path.join(cwd, 'node_modules', moduleInfo.folderName));
+    logIfInRoot(`${installationIndex + 1}. installing ${targets[targetFolder].length} dependencies to ${shortTargetFolder}`);
+    installPromises.push(moduletools.installPackets(targetFolder, targets[targetFolder])
+      .then(() => {
+        finishedInstallations.push(installationIndex);
+        printInstallationStatus(startedInstallationCount, finishedInstallations);
       }));
-    });
+  }
+  printInstallationStatus(targets.length, []);
+
+  await Promise.all(installPromises);
+
+  process.stdout.write('\n');
+
+  // Now we're in a state where every dependency required by any local module
+  // is installed at least somewhere. To make the modules find their dependencies
+  // we now symlink them to the modules
+  return fixMissingDependenciesWithSymlinks();
+
+  // TODO: delete all unnecessary double-installs (when a and b both had a sub-dependency c that thus got installed twice)
+  // this has low priority, as this is a rare edge-case with no real negative side-effects except a tiny bit bigger folder-size
+}
+
+async function runPostinstalls(modules) {
+  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+
+  const localModules = result.modules;
+  const postinstallPromises = [];
+
+  for (const module of localModules) {
+    if (module.fullModulePath === cwd) {
+      logger.debug('skipping the postinstall of the parent-module');
+      continue;
+    }
+
+    if (!module.postinstallCommand) {
+      logger.debug(`skipping the postinstall of ${module.name}. it has no postinstall script.`);
+      continue;
+    }
+
+    logger.debug(`running postinstall of ${module.name}`);
+    postinstallPromises.push(systools.runCommand(`cd ${module.fullModulePath}${commandConcatSymbol} ${module.postinstallCommand}`));
+  }
+
+  return Promise.all(postinstallPromises);
+}
+
+async function deleteLinkedLocalModules() {
+  const moduleInfos = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+
+  return Promise.all(moduleInfos.modules.map((moduleInfo) => {
+    // local modules should be linked using the folder-names they should have,
+    // no matter what folder-name they actually have, therefore don't use realFolderName here
+    return systools.delete(path.join(cwd, 'node_modules', moduleInfo.folderName));
+  }));
 }
 
 function parseProcessArguments() {
@@ -851,18 +837,17 @@ function parseProcessArguments() {
   }
 }
 
-function cleanupDependencies() {
-  return moduletools.getAllModulesAndInstalledDependenciesDeep()
-    .then((moduleInfos) => {
-      return Promise.all(moduleInfos.modules.map((moduleInfo) => {
-        // local modules should be linked using the folder-names they should have,
-        // no matter what folder-name they actually have, therefore don't use realFolderName here
-        return systools.delete(path.join(moduleInfo.fullModulePath, 'node_modules'));
-      }));
-    });
+async function cleanupDependencies() {
+  const moduleInfos = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+
+  return Promise.all(moduleInfos.modules.map((moduleInfo) => {
+    // local modules should be linked using the folder-names they should have,
+    // no matter what folder-name they actually have, therefore don't use realFolderName here
+    return systools.delete(path.join(moduleInfo.fullModulePath, 'node_modules'));
+  }));
 }
 
-function run() {
+async function run() {
   const startTime = Date.now();
 
   setupLogger();
@@ -887,45 +872,39 @@ function run() {
   logger.debug('project folder name:', projectFolderName);
 
   if (dependencyCheckOnly) {
-    return moduletools.getAllModulesAndInstalledDependenciesDeep()
-    .then((result) => {
-      const localModules = result.modules;
-      const requestedDependencies = findRequestedDependencies(localModules);
-      printNonOptimalDependencyInfos(requestedDependencies);
-      printNonOptimalLocalModuleUsage(localModules, requestedDependencies);
-    });
+    const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+    const localModules = result.modules;
+    const requestedDependencies = findRequestedDependencies(localModules);
+    printNonOptimalDependencyInfos(requestedDependencies);
+    printNonOptimalLocalModuleUsage(localModules, requestedDependencies);
+
+    return;
   }
 
   if (linkOnly) {
     return fixMissingDependenciesWithSymlinks();
   }
 
-  checkStartConditions()
-    .then(() => {
-      if (linkModules) {
-        return deleteLinkedLocalModules();
-      }
-      return null;
-    })
-    .then(() => {
-      if (cleanup) {
-        return cleanupDependencies();
-      }
+  try {
+    await checkStartConditions();
+    if (linkModules) {
+      await deleteLinkedLocalModules();
+    }
 
-      return null;
-    })
-    .then(() => {
-      return installModuleDependencies();
-    })
-    .then((updatedModules) => {
-      return runPostinstalls();
-    })
-    .then(() => {
-      logIfInRoot(`\nminstall finished in ${systools.getRuntime(startTime)} :)\n\n`);
-    })
-    .catch(UncriticalError, (error) => {
+    if (cleanup) {
+      await cleanupDependencies();
+    }
+
+    const updatedModules = await installModuleDependencies();
+    await runPostinstalls();
+    logIfInRoot(`\nminstall finished in ${systools.getRuntime(startTime)} :)\n\n`);
+  } catch (error) {
+    if (error.constructor !== undefined && error.constructor.name === 'UncriticalError') {
       logIfInRoot(error.message);
-    });
+    } else {
+      throw error;
+    }
+  }
 }
 
 run();
