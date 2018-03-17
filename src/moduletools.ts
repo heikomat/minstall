@@ -1,12 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as semver from 'semver';
-import {Winston} from 'winston';
+import * as logger from 'winston';
 import {DependencyRequestInfo, ModulesAndDependenciesInfo} from './interfaces';
 import {ModuleInfo} from './module_info';
 import {SystemTools} from './systools';
-
-let logger: Winston = null;
 
 export class ModuleTools {
 
@@ -24,10 +22,6 @@ export class ModuleTools {
 
   public static setCommandConcatSymbol(commandConcatSymbol: string): void {
     this.commandConcatSymbol = commandConcatSymbol;
-  }
-
-  public static setLogger(_logger: Winston): void {
-    logger = _logger;
   }
 
   public static logVerbose(): boolean {

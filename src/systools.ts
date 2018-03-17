@@ -1,15 +1,9 @@
 import {exec} from 'child_process';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import {Winston} from 'winston';
-
-let logger: Winston = null;
+import * as logger from 'winston';
 
 export class SystemTools {
-
-  public static setLogger(_logger: Winston): void {
-    logger = _logger;
-  }
 
   public static logVerbose(): boolean {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
