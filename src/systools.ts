@@ -60,7 +60,7 @@ export const systools = {
         }
 
         if (stderr) {
-          if (this.logVerbose()) {
+          if (systools.logVerbose()) {
             logger.verbose(`stderr:\n${stderr}`);
 
             return reject(new Error(''));
@@ -91,7 +91,7 @@ export const systools = {
         }
 
         return resolve(Promise.all<string>(files.map((file: string) => {
-          return this.verifyFolderName(folderPath, file);
+          return systools.verifyFolderName(folderPath, file);
         })));
       });
     });

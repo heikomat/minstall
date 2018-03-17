@@ -13,15 +13,15 @@ export const moduletools = {
   commandConcatSymbol: ';',
 
   setModulesFolder(modulesFolder: string): void {
-    this.modulesFolder = modulesFolder;
+    moduletools.modulesFolder = modulesFolder;
   },
 
   setNullTarget(nullTarget: string): void {
-    this.nullTarget = nullTarget;
+    moduletools.nullTarget = nullTarget;
   },
 
   setCommandConcatSymbol(commandConcatSymbol: string): void {
-    this.commandConcatSymbol = commandConcatSymbol;
+    moduletools.commandConcatSymbol = commandConcatSymbol;
   },
 
   setLogger(_logger): void {
@@ -38,7 +38,7 @@ export const moduletools = {
     }
 
     if (folderName === null || folderName === undefined) {
-      folderName = this.modulesFolder;
+      folderName = moduletools.modulesFolder;
     }
 
     const result = {
@@ -48,28 +48,28 @@ export const moduletools = {
 
     // get the local modules and the installed modules within the current path
     const currentLevelModules = await Promise.all([
-      ModuleInfo.loadFromFolder(location, ''),    // get infos about the current module
-      this.getModules(location, 'node_modules'),  // get infos about installed modules in the current module
-      this.getModules(location, folderName),      // get infos about local submodules of the current module
+      ModuleInfo.loadFromFolder(location, ''),           // get infos about the current module
+      moduletools.getModules(location, 'node_modules'),  // get infos about installed modules in the current module
+      moduletools.getModules(location, folderName),      // get infos about local submodules of the current module
     ]);
 
     result.modules.push(currentLevelModules[0]);
     result.installedDependencies = result.installedDependencies.concat(currentLevelModules[1]);
 
     // recursively get the local modules and installed dependencies of all the other local modules
-    const otherLevelModules: Array<any> = await Promise.all(currentLevelModules[2].map((module) => {
-      return this.getAllModulesAndInstalledDependenciesDeep(module.fullModulePath, folderName);
+    const otherLevelModules: Array<typeof result> = await Promise.all(currentLevelModules[2].map((module: ModuleInfo) => {
+      return moduletools.getAllModulesAndInstalledDependenciesDeep(module.fullModulePath, folderName);
     }));
 
     for (const moduleAndDependencyInfo of otherLevelModules) {
 
       result.modules = result.modules.concat(moduleAndDependencyInfo.modules)
-        .filter((module) => {
+        .filter((module: ModuleInfo) => {
           return module !== null;
         });
 
       result.installedDependencies = result.installedDependencies.concat(moduleAndDependencyInfo.installedDependencies)
-        .filter((module) => {
+        .filter((module: ModuleInfo) => {
           return module !== null;
         });
     }
@@ -82,7 +82,7 @@ export const moduletools = {
     const result: Array<ModuleInfo> = [];
 
     if (rootFolder === null || rootFolder === undefined) {
-      rootFolder = this.modulesFolder;
+      rootFolder = moduletools.modulesFolder;
     }
     const modulesPath: string = path.join(location, rootFolder);
     const folderNames: Array<string> = await systools.getFolderNames(modulesPath);
@@ -92,7 +92,7 @@ export const moduletools = {
     });
 
     const moduleNames: Array<string> = await Promise.all(folderNames.map((folderName: string) => {
-      return this.verifyModule(modulesPath, folderName);
+      return moduletools.verifyModule(modulesPath, folderName);
     }));
 
     const modules: Array<string> = moduleNames.filter((moduleName: string) => {
@@ -105,10 +105,10 @@ export const moduletools = {
       result.push(module);
     }
 
-    let scopedModules: Array<ModuleInfo> = [];
+    let scopedModules: Array<Array<ModuleInfo>> = [];
     if (scopedFolder.length > 0) {
       scopedModules = await Promise.all(scopedFolder.map((folderName: string) => {
-        return this.getModules(path.join(location, rootFolder), folderName);
+        return moduletools.getModules(path.join(location, rootFolder), folderName);
       }));
     }
 
@@ -146,14 +146,14 @@ export const moduletools = {
     });
 
     let npmiLoglevel: string = 'error';
-    let nullTarget: string = ` > ${this.nullTarget}`;
-    if (this.logVerbose()) {
+    let nullTarget: string = ` > ${moduletools.nullTarget}`;
+    if (moduletools.logVerbose()) {
       npmiLoglevel = 'info';
       nullTarget = '';
     }
 
     try {
-      await systools.runCommand(`cd ${targetFolder}${this.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
+      await systools.runCommand(`cd ${targetFolder}${moduletools.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
     } catch (error) {
       // npm pushes all its info- and wanr-logs to stderr. If we have a debug
       // flag set, and we wouldn't catch here, then minstall would fail
