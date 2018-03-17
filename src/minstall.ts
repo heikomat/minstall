@@ -470,7 +470,7 @@ function sortDependenciesByRequestCount(requestedDependencyArray: Array<Dependen
   const result: Array<DependencyRequestInfo> = requestedDependencyArray
     .splice(0)
     .sort((dependency1: DependencyRequestInfo, dependency2: DependencyRequestInfo) => {
-      return dependency1.requestedBy.length - dependency2.requestedBy.length;
+      return dependency2.requestedBy.length - dependency1.requestedBy.length;
     });
 
   return result;
@@ -851,7 +851,8 @@ function parseProcessArguments(): void {
     } else if (process.argv[i] === '--isChildProcess') {
       isInProjectRoot = false;
     } else if (process.argv[i] === '--loglevel') {
-      logger.configure({level: process.argv[i + 1]});
+      // tslint:disable-next-line:no-any
+      (<any> logger).level = process.argv[i + 1];
       i++;
     } else if (process.argv[i] === '--no-link') {
       linkModules = false;
@@ -891,7 +892,8 @@ async function run(): Promise<void> {
   const startTime: number = Date.now();
 
   setupLogger();
-  logger.configure({level: 'info'});
+  // tslint:disable-next-line:no-any
+  (<any> logger).level = 'info';
   parseProcessArguments();
 
   SystemTools.setLogger(logger);
