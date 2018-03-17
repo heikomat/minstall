@@ -4,17 +4,17 @@ import * as path from 'path';
 
 let logger = null;
 
-export const systools = {
+export class SystemTools {
 
-  setLogger(_logger): void {
+  public static setLogger(_logger): void {
     logger = _logger;
-  },
+  }
 
-  logVerbose(): boolean {
+  public static logVerbose(): boolean {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
-  },
+  }
 
-  delete(location: string): Promise<void> {
+  public static delete(location: string): Promise<void> {
     logger.verbose('delete', location);
 
     return new Promise((resolve: Function, reject: Function): void => {
@@ -33,9 +33,9 @@ export const systools = {
         return resolve();
       });
     });
-  },
+  }
 
-  link(modulePath: string, targetPath: string): Promise<void> {
+  public static link(modulePath: string, targetPath: string): Promise<void> {
     logger.verbose('link', modulePath, '->', targetPath);
 
     return new Promise((resolve: Function, reject: Function): void => {
@@ -46,9 +46,9 @@ export const systools = {
         return resolve();
       });
     });
-  },
+  }
 
-  runCommand(command: string, silent: boolean = false): Promise<string> {
+  public static runCommand(command: string, silent: boolean = false): Promise<string> {
     logger.verbose('running command', command);
 
     return new Promise<string>((resolve: Function, reject: Function): void => {
@@ -60,7 +60,7 @@ export const systools = {
         }
 
         if (stderr) {
-          if (systools.logVerbose()) {
+          if (SystemTools.logVerbose()) {
             logger.verbose(`stderr:\n${stderr}`);
 
             return reject(new Error(''));
@@ -76,9 +76,9 @@ export const systools = {
         return resolve(stdout);
       });
     });
-  },
+  }
 
-  async getFolderNames(folderPath: string): Promise<Array<string>> {
+  public static async getFolderNames(folderPath: string): Promise<Array<string>> {
     const folderNames: Array<string> = await new Promise<Array<string>>((resolve: Function, reject: Function): void => {
 
       fs.readdir(folderPath, (error: NodeJS.ErrnoException, files: Array<string>) => {
@@ -91,7 +91,7 @@ export const systools = {
         }
 
         return resolve(Promise.all<string>(files.map((file: string) => {
-          return systools.verifyFolderName(folderPath, file);
+          return SystemTools.verifyFolderName(folderPath, file);
         })));
       });
     });
@@ -99,9 +99,9 @@ export const systools = {
     return folderNames.filter((folderName: string) => {
       return folderName !== null;
     });
-  },
+  }
 
-  verifyFolderName(folderPath: string, folderName: string): Promise<string> {
+  public static verifyFolderName(folderPath: string, folderName: string): Promise<string> {
     if (folderName.indexOf('.') === 0) {
       return Promise.resolve(null);
     }
@@ -125,9 +125,9 @@ export const systools = {
         return resolve(folderName);
       });
     });
-  },
+  }
 
-  isSymlink(location: string): Promise<boolean> {
+  public static isSymlink(location: string): Promise<boolean> {
     return new Promise((resolve: Function, reject: Function): void => {
       fs.lstat(location, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
         if (error) {
@@ -137,9 +137,9 @@ export const systools = {
         return resolve(stats.isSymbolicLink());
       });
     });
-  },
+  }
 
-  getRuntime(start: number): string {
+  public static getRuntime(start: number): string {
     // tslint:disable-next-line:no-magic-numbers
     let runSeconds: number = Math.round((Date.now() - start) / 1000);
 
@@ -159,5 +159,5 @@ export const systools = {
     }
 
     return `${runMinutes}:${runSeconds} minutes`;
-  },
-};
+  }
+}

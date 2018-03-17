@@ -10,8 +10,8 @@ import * as logger from 'winston';
 const cwd: string = process.cwd();
 
 import {ModuleInfo} from './module_info';
-import {moduletools} from './moduletools';
-import {systools} from './systools';
+import {ModuleTools} from './moduletools';
+import {SystemTools} from './systools';
 import {UncriticalError} from './uncritical_error';
 
 let commandConcatSymbol: string = ';';
@@ -47,9 +47,9 @@ function getLocalPackageInfo() {
 async function checkStartConditions(): Promise<void> {
   logger.debug('checking start conditions');
   const results = await Promise.all([
-    systools.verifyFolderName(cwd, 'node_modules'),
+    SystemTools.verifyFolderName(cwd, 'node_modules'),
     getLocalPackageInfo(),
-    systools.runCommand('npm --version', true),
+    SystemTools.runCommand('npm --version', true),
   ]);
 
   let folderName: string = results[0];
@@ -93,12 +93,12 @@ async function checkStartConditions(): Promise<void> {
   }
 
   folderName = '.';
-  if (moduletools.modulesFolder !== '.') {
-    folderName = await systools.verifyFolderName(cwd, moduletools.modulesFolder);
+  if (ModuleTools.modulesFolder !== '.') {
+    folderName = await SystemTools.verifyFolderName(cwd, ModuleTools.modulesFolder);
   }
 
   if (folderName === null) {
-    throw new UncriticalError(`${moduletools.modulesFolder} not found, thus minstall is done :)`);
+    throw new UncriticalError(`${ModuleTools.modulesFolder} not found, thus minstall is done :)`);
   }
 
   if (installedAsDependency) {
@@ -106,7 +106,7 @@ async function checkStartConditions(): Promise<void> {
   }
 
   const nextResults = await Promise.all([
-    systools.isSymlink(path.join(cwd, 'node_modules')),
+    SystemTools.isSymlink(path.join(cwd, 'node_modules')),
     getLocalPackageInfo(),
   ]);
 
@@ -577,7 +577,7 @@ async function removeContradictingInstalledDependencies(): Promise<Array<void>> 
   // for example: module A requires B in version 2.0.0, and in
   // A/node_modules is a package B, but it is in version 1.0.0.
   // In that case, delete A/node_modules/B
-  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   const deletionPromises: Array<Promise<void>> = [];
   const localModules = result.modules;
@@ -607,7 +607,7 @@ async function removeContradictingInstalledDependencies(): Promise<Array<void>> 
       // The requested dependency is installed AND it does not satisfy the version requested
       // in the package.json of the module. We need to remove it!
       logger.debug(`${module.name} wants ${dependency}@${requestedVersion}, but it has version ${matchingInstalledDependency.version} installed in its node_modules. Deleting the contradicting dependency!`);
-      deletionPromises.push(systools.delete(matchingInstalledDependency.fullModulePath));
+      deletionPromises.push(SystemTools.delete(matchingInstalledDependency.fullModulePath));
     }
   }
 
@@ -618,7 +618,7 @@ async function findOptimalDependencyTargetFolder() {
   // create a list of places where dependencies should go. Remember to not install
   // dependencies that appear in the modules list, except when they won't be linked.
 
-  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   const localModules = result.modules;
   const alreadyInstalledDependencies = result.installedDependencies;
@@ -650,7 +650,7 @@ async function findOptimalDependencyTargetFolder() {
 
 async function fixMissingDependenciesWithSymlinks(): Promise<void> {
 
-  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   const localModules = result.modules;
   const installedDependencies = result.installedDependencies;
@@ -707,7 +707,7 @@ async function fixMissingDependenciesWithSymlinks(): Promise<void> {
           // simlink the dependency
           const sourceDependencyPath: string = fittingInstalledModule.fullModulePath;
           const targetDependencyPath: string = path.join(module.fullModulePath, 'node_modules', fittingInstalledModule.folderName);
-          symlinkPromises.push(systools.link(sourceDependencyPath, targetDependencyPath));
+          symlinkPromises.push(SystemTools.link(sourceDependencyPath, targetDependencyPath));
 
           // create all the .bin-symlinks
           // TODO: this won't work for packets that define a custom bin-folder.
@@ -715,7 +715,7 @@ async function fixMissingDependenciesWithSymlinks(): Promise<void> {
           for (const binEntry in fittingInstalledModule.bin) {
             const sourceFile: string = path.join(fittingInstalledModule.fullModulePath, fittingInstalledModule.bin[binEntry]);
             const targetLink: string = path.join(module.fullModulePath, 'node_modules', '.bin', binEntry);
-            symlinkPromises.push(systools.link(sourceFile, targetLink));
+            symlinkPromises.push(SystemTools.link(sourceFile, targetLink));
           }
         }
       }
@@ -758,7 +758,7 @@ async function installModuleDependencies(): Promise<void> {
     startedInstallationCount++;
 
     logIfInRoot(`${installationIndex + 1}. installing ${targets[targetFolder].length} dependencies to ${shortTargetFolder}`);
-    installPromises.push(moduletools.installPackets(targetFolder, targets[targetFolder])
+    installPromises.push(ModuleTools.installPackets(targetFolder, targets[targetFolder])
       .then(() => {
         finishedInstallations.push(installationIndex);
         printInstallationStatus(startedInstallationCount, finishedInstallations);
@@ -780,7 +780,7 @@ async function installModuleDependencies(): Promise<void> {
 }
 
 async function runPostinstalls(): Promise<void> {
-  const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+  const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   const localModules = result.modules;
   const postinstallPromises: Array<Promise<string>> = [];
@@ -797,7 +797,7 @@ async function runPostinstalls(): Promise<void> {
     }
 
     logger.debug(`running postinstall of ${module.name}`);
-    postinstallPromises.push(systools.runCommand(`cd ${module.fullModulePath}${commandConcatSymbol} ${module.postinstallCommand}`));
+    postinstallPromises.push(SystemTools.runCommand(`cd ${module.fullModulePath}${commandConcatSymbol} ${module.postinstallCommand}`));
   }
 
   // tslint:disable-next-line:no-any
@@ -805,20 +805,20 @@ async function runPostinstalls(): Promise<void> {
 }
 
 async function deleteLinkedLocalModules(): Promise<void> {
-  const moduleInfos = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+  const moduleInfos = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   // tslint:disable-next-line:no-any
   return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
-    return systools.delete(path.join(cwd, 'node_modules', moduleInfo.folderName));
+    return SystemTools.delete(path.join(cwd, 'node_modules', moduleInfo.folderName));
   }));
 }
 
 function parseProcessArguments(): void {
   for (let i: number = 2; i < process.argv.length; i++) {
     if (process.argv[i].indexOf('--') !== 0) {
-      moduletools.setModulesFolder(process.argv[i]);
+      ModuleTools.setModulesFolder(process.argv[i]);
     } else if (process.argv[i] === '--isChildProcess') {
       isInProjectRoot = false;
     } else if (process.argv[i] === '--loglevel') {
@@ -848,13 +848,13 @@ function parseProcessArguments(): void {
 }
 
 async function cleanupDependencies(): Promise<void> {
-  const moduleInfos = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+  const moduleInfos = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   // tslint:disable-next-line:no-any
   return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
-    return systools.delete(path.join(moduleInfo.fullModulePath, 'node_modules'));
+    return SystemTools.delete(path.join(moduleInfo.fullModulePath, 'node_modules'));
   }));
 }
 
@@ -865,8 +865,8 @@ async function run(): Promise<void> {
   (<any> logger).level = 'info';
   parseProcessArguments();
 
-  systools.setLogger(logger);
-  moduletools.setLogger(logger);
+  SystemTools.setLogger(logger);
+  ModuleTools.setLogger(logger);
 
   logger.silly('process arguments:', process.argv);
   logger.silly('os platfrom:', os.platform());
@@ -874,8 +874,8 @@ async function run(): Promise<void> {
   logger.debug('isChildProcess:', !isInProjectRoot);
   if (os.platform() === 'win32') {
     commandConcatSymbol = '&';
-    moduletools.setNullTarget('NUL');
-    moduletools.setCommandConcatSymbol(commandConcatSymbol);
+    ModuleTools.setNullTarget('NUL');
+    ModuleTools.setCommandConcatSymbol(commandConcatSymbol);
   }
 
   const pathParts: Array<string> = cwd.split(path.sep);
@@ -883,7 +883,7 @@ async function run(): Promise<void> {
   logger.debug('project folder name:', projectFolderName);
 
   if (dependencyCheckOnly) {
-    const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
+    const result = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
     const localModules = result.modules;
     const requestedDependencies = findRequestedDependencies(localModules);
     printNonOptimalDependencyInfos(requestedDependencies);
@@ -908,7 +908,7 @@ async function run(): Promise<void> {
 
     await installModuleDependencies();
     await runPostinstalls();
-    logIfInRoot(`\nminstall finished in ${systools.getRuntime(startTime)} :)\n\n`);
+    logIfInRoot(`\nminstall finished in ${SystemTools.getRuntime(startTime)} :)\n\n`);
   } catch (error) {
     if (error.constructor !== undefined && error.constructor.name === 'UncriticalError') {
       logIfInRoot(error.message);

@@ -2,43 +2,43 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as semver from 'semver';
 import {ModuleInfo} from './module_info';
-import {systools} from './systools';
+import {SystemTools} from './systools';
 
 let logger = null;
 
-export const moduletools = {
+export class ModuleTools {
 
-  modulesFolder: 'modules',
-  nullTarget: '/dev/null',
-  commandConcatSymbol: ';',
+  public static modulesFolder: string = 'modules';
+  public static nullTarget: string = '/dev/null';
+  public static commandConcatSymbol: string = ';';
 
-  setModulesFolder(modulesFolder: string): void {
-    moduletools.modulesFolder = modulesFolder;
-  },
+  public static setModulesFolder(modulesFolder: string): void {
+    this.modulesFolder = modulesFolder;
+  }
 
-  setNullTarget(nullTarget: string): void {
-    moduletools.nullTarget = nullTarget;
-  },
+  public static setNullTarget(nullTarget: string): void {
+    this.nullTarget = nullTarget;
+  }
 
-  setCommandConcatSymbol(commandConcatSymbol: string): void {
-    moduletools.commandConcatSymbol = commandConcatSymbol;
-  },
+  public static setCommandConcatSymbol(commandConcatSymbol: string): void {
+    this.commandConcatSymbol = commandConcatSymbol;
+  }
 
-  setLogger(_logger): void {
+  public static setLogger(_logger): void {
     logger = _logger;
-  },
+  }
 
-  logVerbose(): boolean {
+  public static logVerbose(): boolean {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
-  },
+  }
 
-  async getAllModulesAndInstalledDependenciesDeep(location?: string, folderName?: string) {
+  public static async getAllModulesAndInstalledDependenciesDeep(location?: string, folderName?: string) {
     if (location === null || location === undefined) {
       location = process.cwd();
     }
 
     if (folderName === null || folderName === undefined) {
-      folderName = moduletools.modulesFolder;
+      folderName = this.modulesFolder;
     }
 
     const result = {
@@ -49,8 +49,8 @@ export const moduletools = {
     // get the local modules and the installed modules within the current path
     const currentLevelModules = await Promise.all([
       ModuleInfo.loadFromFolder(location, ''),           // get infos about the current module
-      moduletools.getModules(location, 'node_modules'),  // get infos about installed modules in the current module
-      moduletools.getModules(location, folderName),      // get infos about local submodules of the current module
+      this.getModules(location, 'node_modules'),  // get infos about installed modules in the current module
+      this.getModules(location, folderName),      // get infos about local submodules of the current module
     ]);
 
     result.modules.push(currentLevelModules[0]);
@@ -58,7 +58,7 @@ export const moduletools = {
 
     // recursively get the local modules and installed dependencies of all the other local modules
     const otherLevelModules: Array<typeof result> = await Promise.all(currentLevelModules[2].map((module: ModuleInfo) => {
-      return moduletools.getAllModulesAndInstalledDependenciesDeep(module.fullModulePath, folderName);
+      return this.getAllModulesAndInstalledDependenciesDeep(module.fullModulePath, folderName);
     }));
 
     for (const moduleAndDependencyInfo of otherLevelModules) {
@@ -75,24 +75,24 @@ export const moduletools = {
     }
 
     return result;
-  },
+  }
 
-  async getModules(location: string, rootFolder: string): Promise<Array<ModuleInfo>> {
+  public static async getModules(location: string, rootFolder: string): Promise<Array<ModuleInfo>> {
     let scopedFolder = [];
     const result: Array<ModuleInfo> = [];
 
     if (rootFolder === null || rootFolder === undefined) {
-      rootFolder = moduletools.modulesFolder;
+      rootFolder = this.modulesFolder;
     }
     const modulesPath: string = path.join(location, rootFolder);
-    const folderNames: Array<string> = await systools.getFolderNames(modulesPath);
+    const folderNames: Array<string> = await SystemTools.getFolderNames(modulesPath);
 
     scopedFolder = folderNames.filter((folderName: string) => {
       return folderName.indexOf('@') === 0;
     });
 
     const moduleNames: Array<string> = await Promise.all(folderNames.map((folderName: string) => {
-      return moduletools.verifyModule(modulesPath, folderName);
+      return this.verifyModule(modulesPath, folderName);
     }));
 
     const modules: Array<string> = moduleNames.filter((moduleName: string) => {
@@ -108,14 +108,14 @@ export const moduletools = {
     let scopedModules: Array<Array<ModuleInfo>> = [];
     if (scopedFolder.length > 0) {
       scopedModules = await Promise.all(scopedFolder.map((folderName: string) => {
-        return moduletools.getModules(path.join(location, rootFolder), folderName);
+        return this.getModules(path.join(location, rootFolder), folderName);
       }));
     }
 
     return result.concat([].concat(...scopedModules));
-  },
+  }
 
-  verifyModule(location: string, name: string): Promise<string> {
+  public static verifyModule(location: string, name: string): Promise<string> {
     return new Promise((resolve: Function, reject: Function): void => {
 
       // the constant is called fs.F_OK in node < 6, and fs.constants.F_OK in node >= 6
@@ -133,9 +133,9 @@ export const moduletools = {
         return resolve(name);
       });
     });
-  },
+  }
 
-  async installPackets(targetFolder: string, packets): Promise<void> {
+  public static async installPackets(targetFolder: string, packets): Promise<void> {
 
     if (packets.length === 0) {
       return Promise.resolve();
@@ -146,14 +146,14 @@ export const moduletools = {
     });
 
     let npmiLoglevel: string = 'error';
-    let nullTarget: string = ` > ${moduletools.nullTarget}`;
-    if (moduletools.logVerbose()) {
+    let nullTarget: string = ` > ${this.nullTarget}`;
+    if (this.logVerbose()) {
       npmiLoglevel = 'info';
       nullTarget = '';
     }
 
     try {
-      await systools.runCommand(`cd ${targetFolder}${moduletools.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
+      await SystemTools.runCommand(`cd ${targetFolder}${this.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
     } catch (error) {
       // npm pushes all its info- and wanr-logs to stderr. If we have a debug
       // flag set, and we wouldn't catch here, then minstall would fail
@@ -168,5 +168,5 @@ export const moduletools = {
       // to stderr, so we reroute it to stdout instead of throwing an error
       process.stdout.write(error.message);
     }
-  },
-};
+  }
+}
