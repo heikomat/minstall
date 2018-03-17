@@ -1,11 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as semver from 'semver';
+import {Winston} from 'winston';
 import {DependencyRequestInfo, ModulesAndDependenciesInfo} from './interfaces';
 import {ModuleInfo} from './module_info';
 import {SystemTools} from './systools';
 
-let logger = null;
+let logger: Winston = null;
 
 export class ModuleTools {
 
@@ -25,7 +26,7 @@ export class ModuleTools {
     this.commandConcatSymbol = commandConcatSymbol;
   }
 
-  public static setLogger(_logger): void {
+  public static setLogger(_logger: Winston): void {
     logger = _logger;
   }
 
@@ -123,6 +124,7 @@ export class ModuleTools {
     return new Promise((resolve: Function, reject: Function): void => {
 
       // the constant is called fs.F_OK in node < 6, and fs.constants.F_OK in node >= 6
+      // tslint:disable-next-line:no-any
       let mode: number = (<any> fs).F_OK;
       if (fs.constants) {
         mode = fs.constants.F_OK;
@@ -157,6 +159,7 @@ export class ModuleTools {
     }
 
     try {
+      // tslint:disable-next-line:max-line-length
       await SystemTools.runCommand(`cd ${targetFolder}${this.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
     } catch (error) {
       // npm pushes all its info- and wanr-logs to stderr. If we have a debug

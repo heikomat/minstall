@@ -53,15 +53,10 @@ function getLocalPackageInfo(): Promise<ModuleInfo> {
 
 async function checkStartConditions(): Promise<void> {
   logger.debug('checking start conditions');
-  const results = await Promise.all([
-    SystemTools.verifyFolderName(cwd, 'node_modules'),
-    getLocalPackageInfo(),
-    SystemTools.runCommand('npm --version', true),
-  ]);
 
-  let folderName: string = results[0];
-  localPackage = results[1];
-  npmVersion = results[2];
+  let folderName: string = await SystemTools.verifyFolderName(cwd, 'node_modules');
+  localPackage = await getLocalPackageInfo();
+  npmVersion = await SystemTools.runCommand('npm --version', true);
 
   if (semver.satisfies(npmVersion, '5.7.0')) {
     logger.error(`You're using npm 5.7.0. Do not use this version, it has a critical bug that is fixed in 5.7.1. See npm-issue #19883 for more info`);
@@ -71,16 +66,22 @@ async function checkStartConditions(): Promise<void> {
   // npm 5 workaround until npm-issue #16853 is fixed replace the if-confition
   // and log when npm >= 5.7.1 is confirmed working without that workaround
   // if (semver.satisfies(npmVersion, '>=5.0.0 <5.7.0')) {
-  if (semver.major(npmVersion) === 5) {
+  const buggyNpmVersion: number = 5;
+  if (semver.major(npmVersion) === buggyNpmVersion) {
     // logger.info('npm >=5.0.0 <5.7.0 detected. forcing --cleanup');
     logger.info('npm 5 detected. forcing --cleanup');
     cleanup = true;
   }
 
   const pathParts: Array<string> = cwd.split(path.sep);
-  let parentFolder: string = pathParts[pathParts.length - 2];
-  if (localPackage.isScoped) {
-    parentFolder = pathParts[pathParts.length - 3];
+  let parentFolder: string;
+
+  if (!localPackage.isScoped) {
+    const parentFolderIndexDifference: number = 2;
+    parentFolder = pathParts[pathParts.length - parentFolderIndexDifference];
+  } else {
+    const scopedParentFolderIndexDifference: number = 3;
+    parentFolder = pathParts[pathParts.length - scopedParentFolderIndexDifference];
   }
 
   if (parentFolder === 'node_modules') {
@@ -109,20 +110,15 @@ async function checkStartConditions(): Promise<void> {
   }
 
   if (installedAsDependency) {
-    return null;
+    return;
   }
-
-  const nextResults = await Promise.all([
-    SystemTools.isSymlink(path.join(cwd, 'node_modules')),
-    getLocalPackageInfo(),
-  ]);
 
   if (installedAsDependency) {
     return;
   }
 
   if (isInProjectRoot) {
-    isInProjectRoot = !nextResults[0];
+    isInProjectRoot = !await SystemTools.isSymlink(path.join(cwd, 'node_modules'));
   }
 
   if (isInProjectRoot && !localPackage.dependencies.minstall) {
@@ -141,7 +137,7 @@ function setupLogger(): void {
     prettyPrint: true,
   });
 
-  const logLevels = {
+  const logLevels: {[loglevel: string]: {level: number, color: string}} = {
     critical: {level: 0, color: 'red'},
     error: {level: 1, color: 'magenta'},
     warn: {level: 2, color: 'yellow'},
@@ -150,8 +146,8 @@ function setupLogger(): void {
     debug: {level: 5, color: 'blue'},
     silly: {level: 6, color: 'cyan'},
   };
-  const levels = {};
-  const colors = {};
+  const levels: logger.AbstractConfigSetLevels = {};
+  const colors: logger.AbstractConfigSetColors = {};
 
   Object.keys(logLevels)
     .forEach((name: string) => {
@@ -236,6 +232,8 @@ function removeAlreadySatisfiedDependencies(requestedDependencies: DependencyReq
           // get fixed with symlinks after the installation!
           const shortenedRequesterLocation: string = locationOfRequestingModule.substr(cwd.length);
           const shortenedInstalledLocation: string = installedDependency.location.substr(cwd.length);
+
+          // tslint:disable-next-line:max-line-length
           logger.debug(`dependency ${requestedDependencyName}@${requestedDependencyVersionRange} requested by '${shortenedRequesterLocation}' will be satisfied by installed version ${installedDependency.version} in '${path.join(shortenedInstalledLocation)}'`);
         }
 
@@ -277,6 +275,7 @@ function removeAlreadySatisfiedDependencies(requestedDependencies: DependencyReq
         });
 
         if (rangeIsInvalidAndAssumedToBeSatisfied) {
+          // tslint:disable-next-line:max-line-length
           logger.info(`Assuming that local module ${shortenedLocalLocation} satisfies ${requestedDependencyName}@${requestedDependencyVersionRange} requested by ${shortenedRequesterLocations.join(', ')}`);
         }
 
@@ -284,6 +283,7 @@ function removeAlreadySatisfiedDependencies(requestedDependencies: DependencyReq
           // if the version matches the local module will satisfy the dependency, because even if it would get shadowed,
           // shadowed dependencies will get fixed with symlinks!
           const shortenedRequesterLocation: string = `.${locationOfRequestingModule.substr(cwd.length)}`;
+          // tslint:disable-next-line:max-line-length
           logger.debug(`dependency ${requestedDependencyName}@${requestedDependencyVersionRange} requested by '${shortenedRequesterLocation}' will be satisfied by local version ${localModule.version} in '${path.join(shortenedLocalLocation)}'`);
         }
         delete result[requestedDependencyName][requestedDependencyVersionRange];
@@ -341,6 +341,7 @@ function determineDependencyTargetFolder(requestedDependencyArray: Array<Depende
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n  ');
 
+      // tslint:disable-next-line:max-line-length
       logger.warn(`${requestedDependency.requestedBy.length} modules request ${requestedDependency.identifier}. This dependency won't get optimized (hoisted), because '${requestedDependency.versionRange}' is not a vaild semver-range. If ${requestedDependency.name} is one of your local modules, you can try the --trust-local-modules flag. These modules all get their own copy of that Dependency:\n  ${requestedByString}`);
       _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency);
       continue;
@@ -378,6 +379,7 @@ function determineDependencyTargetFolder(requestedDependencyArray: Array<Depende
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n  ');
 
+      // tslint:disable-next-line:max-line-length
       logger.info(`${requestedDependency.identifier} instersects with no-hoist-flag ${matchingNoHoistEntry.identifier}, so it won't get hoisted for the following modules:\n  ${requestedByString}`);
       _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency);
     }
@@ -409,6 +411,7 @@ function determineDependencyTargetFolder(requestedDependencyArray: Array<Depende
         });
 
         if (matchingModule) {
+          // tslint:disable-next-line:max-line-length
           logger.debug(`no need to install ${requestedDependency.identifier} to ${currentPath}. a matching version will already be installed to ${modulePath}`);
           installModuleHere = false;
           break;
@@ -420,6 +423,7 @@ function determineDependencyTargetFolder(requestedDependencyArray: Array<Depende
         for (const installedDependency of alreadyInstalledDependencies) {
           if (installedDependency.name === requestedDependency.name &&
               installedDependency.location === path.join(currentPath, 'node_modules')) {
+            // tslint:disable-next-line:max-line-length
             logger.debug(`${requestedDependency.identifier} can't be installed to ${currentPath}. it conflicts with the already installed ${installedDependency.name}@"${installedDependency.version}"`);
             installModuleHere = false;
             break;
@@ -436,6 +440,7 @@ function determineDependencyTargetFolder(requestedDependencyArray: Array<Depende
           });
 
         if (conflictingDependency) {
+          // tslint:disable-next-line:max-line-length
           logger.debug(`${requestedDependency.identifier} can't be installed to ${currentPath}. it'd conflict with the to be installed ${conflictingDependency.identifier}`);
           installModuleHere = false;
         }
@@ -477,7 +482,7 @@ function printNonOptimalDependencyInfos(requestedDependencies: DependencyRequest
   let initialMessagePrinted: boolean = false;
 
   for (const requestedDependencyName in requestedDependencies) {
-    if (Object.keys(requestedDependencies[requestedDependencyName]).length < 2) {
+    if (Object.keys(requestedDependencies[requestedDependencyName]).length <= 1) {
       continue;
     }
 
@@ -503,9 +508,11 @@ function printNonOptimalDependencyInfos(requestedDependencies: DependencyRequest
 |     ${requestedByString}`;
     }).join('\n| ');
 
+  // tslint:disable:max-line-length
     logIfInRoot(`|
 | ${mostRequested.requestedBy.length} local modules are satisfied with version ${mostRequested.versionRange} of ${mostRequested.name}, but some aren't:${requestedByOtherPackagesString}`);
   }
+  // tslint:enable:max-line-length
 
   if (initialMessagePrinted) {
     logIfInRoot('└---------------------------------------');
@@ -578,8 +585,10 @@ function printNonOptimalLocalModuleUsage(localModules: Array<ModuleInfo>, reques
 |     ${requestedByString}`;
     }).join('\n| ');
 
+    // tslint:disable:max-line-length
     logIfInRoot(`|
 | you have version ${localVersionOfDependency.version} of ${localVersionOfDependency.name} localy, but some local modules request a different version:${requestedByOtherPackagesString}`);
+    // tslint:enable:max-line-length
   }
 
   if (initialMessagePrinted) {
@@ -625,6 +634,7 @@ async function removeContradictingInstalledDependencies(): Promise<Array<void>> 
 
       // The requested dependency is installed AND it does not satisfy the version requested
       // in the package.json of the module. We need to remove it!
+      // tslint:disable-next-line:max-line-length
       logger.debug(`${module.name} wants ${dependency}@${requestedVersion}, but it has version ${matchingInstalledDependency.version} installed in its node_modules. Deleting the contradicting dependency!`);
       deletionPromises.push(SystemTools.delete(matchingInstalledDependency.fullModulePath));
     }
@@ -841,7 +851,7 @@ function parseProcessArguments(): void {
     } else if (process.argv[i] === '--isChildProcess') {
       isInProjectRoot = false;
     } else if (process.argv[i] === '--loglevel') {
-      (<any> logger).level = process.argv[i + 1];
+      logger.configure({level: process.argv[i + 1]});
       i++;
     } else if (process.argv[i] === '--no-link') {
       linkModules = false;
@@ -881,7 +891,7 @@ async function run(): Promise<void> {
   const startTime: number = Date.now();
 
   setupLogger();
-  (<any> logger).level = 'info';
+  logger.configure({level: 'info'});
   parseProcessArguments();
 
   SystemTools.setLogger(logger);

@@ -1,12 +1,13 @@
 import {exec} from 'child_process';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import {Winston} from 'winston';
 
-let logger = null;
+let logger: Winston = null;
 
 export class SystemTools {
 
-  public static setLogger(_logger): void {
+  public static setLogger(_logger: Winston): void {
     logger = _logger;
   }
 
@@ -39,7 +40,9 @@ export class SystemTools {
     logger.verbose('link', modulePath, '->', targetPath);
 
     return new Promise((resolve: Function, reject: Function): void => {
-      fs.ensureSymlink(modulePath, targetPath, 'junction', (error: Error) => {
+      // the typings for fs-extra are wrong. They don't allow 'junction', even though 'junction' is the correct value for symlinks on windows
+      // tslint:disable-next-line:no-any
+      fs.ensureSymlink(modulePath, targetPath, <any> 'junction', (error: Error) => {
 
         // even if the link-command failed (e.g. when the link already exists),
         // the script should continue, thus there is no reject
@@ -66,6 +69,7 @@ export class SystemTools {
             return reject(new Error(''));
           }
 
+          // tslint:disable-next-line:max-line-length
           return reject(new Error(`\nA command from within minstall produced a warning or an error:\ncommand: ${command}\nlog-output:\n${stdout}\n\nmessage:\n${stderr}\n`));
         }
 
