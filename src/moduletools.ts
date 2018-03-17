@@ -12,27 +12,27 @@ export const moduletools = {
   nullTarget: '/dev/null',
   commandConcatSymbol: ';',
 
-  setModulesFolder(modulesFolder) {
+  setModulesFolder(modulesFolder: string): void {
     this.modulesFolder = modulesFolder;
   },
 
-  setNullTarget(nullTarget) {
+  setNullTarget(nullTarget: string): void {
     this.nullTarget = nullTarget;
   },
 
-  setCommandConcatSymbol(commandConcatSymbol) {
+  setCommandConcatSymbol(commandConcatSymbol: string): void {
     this.commandConcatSymbol = commandConcatSymbol;
   },
 
-  setLogger(_logger) {
+  setLogger(_logger): void {
     logger = _logger;
   },
 
-  logVerbose() {
+  logVerbose(): boolean {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   },
 
-  async getAllModulesAndInstalledDependenciesDeep(location?, folderName?) {
+  async getAllModulesAndInstalledDependenciesDeep(location?: string, folderName?: string) {
     if (location === null || location === undefined) {
       location = process.cwd();
     }
@@ -77,37 +77,37 @@ export const moduletools = {
     return result;
   },
 
-  async getModules(location, rootFolder) {
+  async getModules(location: string, rootFolder: string): Promise<Array<ModuleInfo>> {
     let scopedFolder = [];
-    const result = [];
+    const result: Array<ModuleInfo> = [];
 
     if (rootFolder === null || rootFolder === undefined) {
       rootFolder = this.modulesFolder;
     }
-    const modulesPath = path.join(location, rootFolder);
-    const folderNames = await systools.getFolderNames(modulesPath);
+    const modulesPath: string = path.join(location, rootFolder);
+    const folderNames: Array<string> = await systools.getFolderNames(modulesPath);
 
-    scopedFolder = folderNames.filter((folderName) => {
+    scopedFolder = folderNames.filter((folderName: string) => {
       return folderName.indexOf('@') === 0;
     });
 
-    const moduleNames = await Promise.all(folderNames.map((folderName) => {
+    const moduleNames: Array<string> = await Promise.all(folderNames.map((folderName: string) => {
       return this.verifyModule(modulesPath, folderName);
     }));
 
-    const modules = moduleNames.filter((moduleName) => {
+    const modules: Array<string> = moduleNames.filter((moduleName: string) => {
       return moduleName !== null;
     });
 
     // we can't open too many files at once :( read them sequentially
     for (const moduleName of modules) {
-      const module = await ModuleInfo.loadFromFolder(path.join(location, rootFolder), moduleName);
+      const module: ModuleInfo = await ModuleInfo.loadFromFolder(path.join(location, rootFolder), moduleName);
       result.push(module);
     }
 
-    let scopedModules = [];
+    let scopedModules: Array<ModuleInfo> = [];
     if (scopedFolder.length > 0) {
-      scopedModules = await Promise.all(scopedFolder.map((folderName) => {
+      scopedModules = await Promise.all(scopedFolder.map((folderName: string) => {
         return this.getModules(path.join(location, rootFolder), folderName);
       }));
     }
@@ -115,16 +115,16 @@ export const moduletools = {
     return result.concat([].concat(...scopedModules));
   },
 
-  verifyModule(location, name) {
-    return new Promise((resolve, reject) => {
+  verifyModule(location: string, name: string): Promise<string> {
+    return new Promise((resolve: Function, reject: Function): void => {
 
       // the constant is called fs.F_OK in node < 6, and fs.constants.F_OK in node >= 6
-      let mode = (<any> fs).F_OK;
+      let mode: number = (<any> fs).F_OK;
       if (fs.constants) {
         mode = fs.constants.F_OK;
       }
 
-      fs.access(path.join(location, name, 'package.json'), mode, (error) => {
+      fs.access(path.join(location, name, 'package.json'), mode, (error: Error) => {
         if (error) {
           // folder has no package.json, thus it is not a module
           return resolve(null);
@@ -135,25 +135,25 @@ export const moduletools = {
     });
   },
 
-  async installPackets(targetFolder, packets) {
+  async installPackets(targetFolder: string, packets): Promise<void> {
 
     if (packets.length === 0) {
       return Promise.resolve();
     }
 
-    const identifier = packets.map((packet) => {
+    const identifier: Array<string> = packets.map((packet) => {
       return packet.identifier;
     });
 
-    let npmiLoglevel = 'error';
-    let nullTarget = ` > ${this.nullTarget}`;
+    let npmiLoglevel: string = 'error';
+    let nullTarget: string = ` > ${this.nullTarget}`;
     if (this.logVerbose()) {
       npmiLoglevel = 'info';
       nullTarget = '';
     }
 
     try {
-      return systools.runCommand(`cd ${targetFolder}${this.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
+      await systools.runCommand(`cd ${targetFolder}${this.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
     } catch (error) {
       // npm pushes all its info- and wanr-logs to stderr. If we have a debug
       // flag set, and we wouldn't catch here, then minstall would fail

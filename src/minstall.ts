@@ -14,27 +14,28 @@ import {moduletools} from './moduletools';
 import {systools} from './systools';
 import {UncriticalError} from './uncritical_error';
 
-let commandConcatSymbol = ';';
-let isInProjectRoot = true;
+let commandConcatSymbol: string = ';';
+let isInProjectRoot: boolean = true;
 let localPackage = null;
 
-let installedAsDependency = false;
+let installedAsDependency: boolean = false;
 const dependencyInstallLinkedFolders = [];
-let projectFolderName = null;
-let linkModules = true;
-let npmVersion = null;
-let cleanup = false;
-let dependencyCheckOnly = false;
-let linkOnly = false;
-let assumeLocalModulesSatisfyNonSemverDependencyVersions = false;
+let projectFolderName: string = null;
+let linkModules: boolean = true;
+let npmVersion: string = null;
+let cleanup: boolean = false;
+let dependencyCheckOnly: boolean = false;
+let linkOnly: boolean = false;
+let assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean = false;
 const noHoistList = [];
 
-function logVerbose() {
+function logVerbose(): boolean {
   return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
 }
 
-function logIfInRoot(message) {
+function logIfInRoot(message: string): void {
   if (message && message.length > 0 && (isInProjectRoot || logVerbose())) {
+    // tslint:disable-next-line:no-console
     console.log(message);
   }
 }
@@ -43,7 +44,7 @@ function getLocalPackageInfo() {
   return ModuleInfo.loadFromFolder(cwd, '');
 }
 
-async function checkStartConditions() {
+async function checkStartConditions(): Promise<void> {
   logger.debug('checking start conditions');
   const results = await Promise.all([
     systools.verifyFolderName(cwd, 'node_modules'),
@@ -51,7 +52,7 @@ async function checkStartConditions() {
     systools.runCommand('npm --version', true),
   ]);
 
-  let folderName = results[0];
+  let folderName: string = results[0];
   localPackage = results[1];
   npmVersion = results[2];
 
@@ -69,8 +70,8 @@ async function checkStartConditions() {
     cleanup = true;
   }
 
-  const pathParts = cwd.split(path.sep);
-  let parentFolder = pathParts[pathParts.length - 2];
+  const pathParts: Array<string> = cwd.split(path.sep);
+  let parentFolder: string = pathParts[pathParts.length - 2];
   if (localPackage.isScoped) {
     parentFolder = pathParts[pathParts.length - 3];
   }
@@ -122,7 +123,7 @@ async function checkStartConditions() {
   }
 }
 
-function setupLogger() {
+function setupLogger(): void {
   logger.remove(logger.transports.Console);
   logger.add(logger.transports.Console, {
     stderrLevels: ['warn', 'error', 'critial'],
@@ -146,7 +147,7 @@ function setupLogger() {
   const colors = {};
 
   Object.keys(logLevels)
-    .forEach((name) => {
+    .forEach((name: string) => {
       levels[name] = logLevels[name].level;
       colors[name] = logLevels[name].color;
     });
@@ -222,8 +223,8 @@ function removeAlreadySatisfiedDependencies(requestedDependencies, localModules,
         for (const locationOfRequestingModule of result[requestedDependencyName][requestedDependencyVersionRange]) {
           // It doesn't matter where the dependency with the correct version is! all shadowed dependencies
           // get fixed with symlinks after the installation!
-          const shortenedRequesterLocation = locationOfRequestingModule.substr(cwd.length);
-          const shortenedInstalledLocation = installedDependency.location.substr(cwd.length);
+          const shortenedRequesterLocation: string = locationOfRequestingModule.substr(cwd.length);
+          const shortenedInstalledLocation: string = installedDependency.location.substr(cwd.length);
           logger.debug(`dependency ${requestedDependencyName}@${requestedDependencyVersionRange} requested by '${shortenedRequesterLocation}' will be satisfied by installed version ${installedDependency.version} in '${path.join(shortenedInstalledLocation)}'`);
         }
 
@@ -247,28 +248,31 @@ function removeAlreadySatisfiedDependencies(requestedDependencies, localModules,
           continue;
         }
 
-        const rangeIsValidAndSatisfied = semver.validRange(requestedDependencyVersionRange) && semver.satisfies(localModule.version, requestedDependencyVersionRange);
-        const rangeIsInvalidAndAssumedToBeSatisfied = !semver.validRange(requestedDependencyVersionRange) && assumeLocalModulesSatisfyNonSemverDependencyVersions;
-        const dependencyIsSatisfiedByLocalModule = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
+        const rangeIsValidAndSatisfied: boolean = semver.validRange(requestedDependencyVersionRange)
+                                               && semver.satisfies(localModule.version, requestedDependencyVersionRange);
 
+        const rangeIsInvalidAndAssumedToBeSatisfied: boolean = !semver.validRange(requestedDependencyVersionRange)
+                                                             && assumeLocalModulesSatisfyNonSemverDependencyVersions;
+
+        const dependencyIsSatisfiedByLocalModule: boolean = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
         if (!dependencyIsSatisfiedByLocalModule) {
           continue;
         }
 
-        const shortenedLocalLocation = `.${localModule.location.substr(cwd.length)}`;
-        const shortenedRequesterLocations = result[requestedDependencyName][requestedDependencyVersionRange].map((locationOfRequestingModule) => {
+        const shortenedLocalLocation: string = `.${localModule.location.substr(cwd.length)}`;
+        const requesterLocations: Array<string> = result[requestedDependencyName][requestedDependencyVersionRange];
+        const shortenedRequesterLocations: Array<string> = requesterLocations.map((locationOfRequestingModule) => {
           return `.${locationOfRequestingModule.substr(cwd.length)}`;
         });
 
         if (rangeIsInvalidAndAssumedToBeSatisfied) {
-
           logger.info(`Assuming that local module ${shortenedLocalLocation} satisfies ${requestedDependencyName}@${requestedDependencyVersionRange} requested by ${shortenedRequesterLocations.join(', ')}`);
         }
 
         for (const locationOfRequestingModule of result[requestedDependencyName][requestedDependencyVersionRange]) {
           // if the version matches the local module will satisfy the dependency, because even if it would get shadowed,
           // shadowed dependencies will get fixed with symlinks!
-          const shortenedRequesterLocation = `.${locationOfRequestingModule.substr(cwd.length)}`;
+          const shortenedRequesterLocation: string = `.${locationOfRequestingModule.substr(cwd.length)}`;
           logger.debug(`dependency ${requestedDependencyName}@${requestedDependencyVersionRange} requested by '${shortenedRequesterLocation}' will be satisfied by local version ${localModule.version} in '${path.join(shortenedLocalLocation)}'`);
         }
         delete result[requestedDependencyName][requestedDependencyVersionRange];
@@ -300,7 +304,7 @@ function dependenciesToArray(dependencies) {
   return result;
 }
 
-function _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency) {
+function _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency): void {
   for (const installationTarget of requestedDependency.requestedBy) {
 
     if (!optimalDependencyTargetFolder[installationTarget]) {
@@ -316,12 +320,12 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
   const optimalDependencyTargetFolder = {};
   for (const requestedDependency of requestedDependencyArray) {
 
-    const requestedVersionIsValidSemver = semver.validRange(requestedDependency.versionRange);
+    const requestedVersionIsValidSemver: string = semver.validRange(requestedDependency.versionRange);
     if (requestedVersionIsValidSemver === null) {
       // if the requested version is NOT valid semver, we can't hoist the
       // dependency. This is the case for github urls. In that case we just
       // install the dependency to the folder it is requested in.
-      const requestedByString = requestedDependency.requestedBy.map((requestedByPath) => {
+      const requestedByString: string = requestedDependency.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n  ');
 
@@ -358,7 +362,7 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
 
     if (matchingNoHoistEntry !== undefined) {
       // The requested dependency is flagged as "should not get hoisted", so we don't hoist it.
-      const requestedByString = requestedDependency.requestedBy.map((requestedByPath) => {
+      const requestedByString: string = requestedDependency.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n  ');
 
@@ -370,7 +374,7 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
     // gets Installed, even if mutliple modules need it, because in that case
     // it will be symlinked from wherever it is installed. Because of this we
     // just work with the path of the first module that requests this dependency
-    const possiblePathElements = requestedDependency.requestedBy[0].substr(cwd.length).split(path.sep).filter((pathElement) => {
+    const possiblePathElements: Array<string> = requestedDependency.requestedBy[0].substr(cwd.length).split(path.sep).filter((pathElement) => {
       return pathElement.length > 0;
     });
 
@@ -378,11 +382,11 @@ function determineDependencyTargetFolder(requestedDependencyArray, alreadyInstal
     // because of that we just add another pathElement that will be ignored, but will make the last real
     // pathElement not be ignored
     possiblePathElements.push('');
-    let currentPath = cwd;
+    let currentPath: string = cwd;
 
     for (const possiblePathElement of possiblePathElements) {
       // is this Dependency already on the list of things to install?
-      let installModuleHere = true;
+      let installModuleHere: boolean = true;
       for (const modulePath in optimalDependencyTargetFolder) {
         const modulesToBeInstalled = optimalDependencyTargetFolder[modulePath];
         const matchingModule = modulesToBeInstalled.find((moduleToBeInstalled) => {
@@ -449,10 +453,10 @@ function sortDependenciesByRequestCount(requestedDependencyArray) {
   return result;
 }
 
-function printNonOptimalDependencyInfos(requestedDependencies) {
+function printNonOptimalDependencyInfos(requestedDependencies): void {
   let requestedDependencyArray = dependenciesToArray(requestedDependencies);
   requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
-  let initialMessagePrinted = false;
+  let initialMessagePrinted: boolean = false;
 
   for (const requestedDependencyName in requestedDependencies) {
     if (Object.keys(requestedDependencies[requestedDependencyName]).length < 2) {
@@ -471,8 +475,8 @@ function printNonOptimalDependencyInfos(requestedDependencies) {
     });
 
     const mostRequested = requestedVersions.splice(0, 1)[0];
-    const requestedByOtherPackagesString = requestedVersions.map((requestedVersion) => {
-      const requestedByString = requestedVersion.requestedBy.map((requestedByPath) => {
+    const requestedByOtherPackagesString: string = requestedVersions.map((requestedVersion) => {
+      const requestedByString: string = requestedVersion.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n|     ');
 
@@ -493,10 +497,10 @@ function printNonOptimalDependencyInfos(requestedDependencies) {
   }
 }
 
-function printNonOptimalLocalModuleUsage(localModules, requestedDependencies) {
+function printNonOptimalLocalModuleUsage(localModules, requestedDependencies): void {
   let requestedDependencyArray = dependenciesToArray(requestedDependencies);
   requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
-  let initialMessagePrinted = false;
+  let initialMessagePrinted: boolean = false;
 
   for (const requestedDependencyName in requestedDependencies) {
     const localVersionOfDependency = localModules.find((localModule) => {
@@ -546,8 +550,8 @@ function printNonOptimalLocalModuleUsage(localModules, requestedDependencies) {
       initialMessagePrinted = true;
     }
 
-    const requestedByOtherPackagesString = requestedWithIncompatibleVersion.map((requestedVersion) => {
-      const requestedByString = requestedVersion.requestedBy.map((requestedByPath) => {
+    const requestedByOtherPackagesString: string = requestedWithIncompatibleVersion.map((requestedVersion) => {
+      const requestedByString: string = requestedVersion.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
       }).join('\n|     ');
 
@@ -568,21 +572,21 @@ function printNonOptimalLocalModuleUsage(localModules, requestedDependencies) {
   }
 }
 
-async function removeContradictingInstalledDependencies() {
+async function removeContradictingInstalledDependencies(): Promise<Array<void>> {
   // remove all packages that contradict a modules package.json.
   // for example: module A requires B in version 2.0.0, and in
   // A/node_modules is a package B, but it is in version 1.0.0.
   // In that case, delete A/node_modules/B
   const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
-  const deletionPromises = [];
+  const deletionPromises: Array<Promise<void>> = [];
   const localModules = result.modules;
   const alreadyInstalledDependencies = result.installedDependencies;
 
   for (const module of localModules) {
     for (const dependency in module.dependencies) {
-      const requestedVersion = module.dependencies[dependency];
-      const dependencyFolder = path.join(module.fullModulePath, 'node_modules');
+      const requestedVersion: string = module.dependencies[dependency];
+      const dependencyFolder: string = path.join(module.fullModulePath, 'node_modules');
 
       const matchingInstalledDependency = alreadyInstalledDependencies.find((installedDependency) => {
         return installedDependency.location === dependencyFolder && installedDependency.name === dependency;
@@ -644,19 +648,19 @@ async function findOptimalDependencyTargetFolder() {
   return determineDependencyTargetFolder(requestedDependencyArray, alreadyInstalledDependencies);
 }
 
-async function fixMissingDependenciesWithSymlinks() {
+async function fixMissingDependenciesWithSymlinks(): Promise<void> {
 
   const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
   const localModules = result.modules;
   const installedDependencies = result.installedDependencies;
-  const symlinkPromises = [];
+  const symlinkPromises: Array<Promise<void>> = [];
 
   for (const module of localModules) {
     for (const dependency in module.dependencies) {
-      const requestedDependencyVersionRange = module.dependencies[dependency];
+      const requestedDependencyVersionRange: string = module.dependencies[dependency];
       // check if the dependency is already installed localy
-      let dependencyAlreadyInstalled = false;
+      let dependencyAlreadyInstalled: boolean = false;
       let fittingInstalledModule = null;
       for (const installedModule of installedDependencies) {
         if (installedModule.name !== dependency) {
@@ -680,10 +684,13 @@ async function fixMissingDependenciesWithSymlinks() {
       if ((!fittingInstalledModule || !dependencyAlreadyInstalled) && linkModules) {
         for (const localModule of localModules) {
 
-          const rangeIsValidAndSatisfied = semver.validRange(requestedDependencyVersionRange) && semver.satisfies(localModule.version, requestedDependencyVersionRange);
-          const rangeIsInvalidAndAssumedToBeSatisfied = !semver.validRange(requestedDependencyVersionRange) && assumeLocalModulesSatisfyNonSemverDependencyVersions;
-          const dependencyIsSatisfiedByLocalModule = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
+          const rangeIsValidAndSatisfied: boolean = semver.validRange(requestedDependencyVersionRange)
+                                                 && semver.satisfies(localModule.version, requestedDependencyVersionRange);
 
+          const rangeIsInvalidAndAssumedToBeSatisfied: boolean = !semver.validRange(requestedDependencyVersionRange)
+                                                               && assumeLocalModulesSatisfyNonSemverDependencyVersions;
+
+          const dependencyIsSatisfiedByLocalModule: boolean = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
           if (localModule.name !== dependency || !dependencyIsSatisfiedByLocalModule) {
             continue;
           }
@@ -698,16 +705,16 @@ async function fixMissingDependenciesWithSymlinks() {
           logger.error(`NO INSTALLATION FOUND FOR DEPENDENCY ${dependency} ON ${module.fullModulePath}. This shouldn't happen!`);
         } else {
           // simlink the dependency
-          const sourceDependencyPath = fittingInstalledModule.fullModulePath;
-          const targetDependencyPath = path.join(module.fullModulePath, 'node_modules', fittingInstalledModule.folderName);
+          const sourceDependencyPath: string = fittingInstalledModule.fullModulePath;
+          const targetDependencyPath: string = path.join(module.fullModulePath, 'node_modules', fittingInstalledModule.folderName);
           symlinkPromises.push(systools.link(sourceDependencyPath, targetDependencyPath));
 
           // create all the .bin-symlinks
           // TODO: this won't work for packets that define a custom bin-folder.
           // This is so super-rare though, that it's not important for now
           for (const binEntry in fittingInstalledModule.bin) {
-            const sourceFile = path.join(fittingInstalledModule.fullModulePath, fittingInstalledModule.bin[binEntry]);
-            const targetLink = path.join(module.fullModulePath, 'node_modules', '.bin', binEntry);
+            const sourceFile: string = path.join(fittingInstalledModule.fullModulePath, fittingInstalledModule.bin[binEntry]);
+            const targetLink: string = path.join(module.fullModulePath, 'node_modules', '.bin', binEntry);
             symlinkPromises.push(systools.link(sourceFile, targetLink));
           }
         }
@@ -715,37 +722,39 @@ async function fixMissingDependenciesWithSymlinks() {
     }
   }
 
-  return Promise.all(symlinkPromises);
+  // tslint:disable-next-line:no-any
+  return <Promise<any>> Promise.all(symlinkPromises);
 }
 
-function printInstallationStatus(startedInstallationCount, finishedInstallations) {
+function printInstallationStatus(startedInstallationCount, finishedInstallations): void {
   readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
-  const installationStatus = [];
+  const installationStatus: Array<string> = [];
   for (let index = 0; index < startedInstallationCount; index++) {
     if (finishedInstallations.indexOf(index) >= 0) {
       installationStatus.push(`${index + 1}: ✓`);
     } else {
+      // tslint:disable-next-line:no-multi-spaces
       installationStatus.push(`${index + 1}:  `);
     }
   }
   process.stdout.write(installationStatus.join(' '));
 }
 
-async function installModuleDependencies() {
+async function installModuleDependencies(): Promise<void> {
 
   await removeContradictingInstalledDependencies();
   const targets = await findOptimalDependencyTargetFolder();
 
   // targets is an array where each entry has a location and a list of modules that should be installed
-  const installPromises = [];
+  const installPromises: Array<Promise<void>> = [];
 
-  let startedInstallationCount = 0;
-  const finishedInstallations = [];
+  let startedInstallationCount: number = 0;
+  const finishedInstallations: Array<number> = [];
   for (const targetFolder in targets) {
 
-    const shortTargetFolder = `.${targetFolder.substr(process.cwd().length)}`;
-    const installationIndex = startedInstallationCount;
+    const shortTargetFolder: string = `.${targetFolder.substr(process.cwd().length)}`;
+    const installationIndex: number = startedInstallationCount;
     startedInstallationCount++;
 
     logIfInRoot(`${installationIndex + 1}. installing ${targets[targetFolder].length} dependencies to ${shortTargetFolder}`);
@@ -770,11 +779,11 @@ async function installModuleDependencies() {
   // this has low priority, as this is a rare edge-case with no real negative side-effects except a tiny bit bigger folder-size
 }
 
-async function runPostinstalls() {
+async function runPostinstalls(): Promise<void> {
   const result = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
   const localModules = result.modules;
-  const postinstallPromises = [];
+  const postinstallPromises: Array<Promise<string>> = [];
 
   for (const module of localModules) {
     if (module.fullModulePath === cwd) {
@@ -791,21 +800,23 @@ async function runPostinstalls() {
     postinstallPromises.push(systools.runCommand(`cd ${module.fullModulePath}${commandConcatSymbol} ${module.postinstallCommand}`));
   }
 
-  return Promise.all(postinstallPromises);
+  // tslint:disable-next-line:no-any
+  return <Promise<any>> Promise.all(postinstallPromises);
 }
 
-async function deleteLinkedLocalModules() {
+async function deleteLinkedLocalModules(): Promise<void> {
   const moduleInfos = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
-  return Promise.all(moduleInfos.modules.map((moduleInfo) => {
+  // tslint:disable-next-line:no-any
+  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
     return systools.delete(path.join(cwd, 'node_modules', moduleInfo.folderName));
   }));
 }
 
-function parseProcessArguments() {
-  for (let i = 2; i < process.argv.length; i++) {
+function parseProcessArguments(): void {
+  for (let i: number = 2; i < process.argv.length; i++) {
     if (process.argv[i].indexOf('--') !== 0) {
       moduletools.setModulesFolder(process.argv[i]);
     } else if (process.argv[i] === '--isChildProcess') {
@@ -836,21 +847,22 @@ function parseProcessArguments() {
   }
 }
 
-async function cleanupDependencies() {
+async function cleanupDependencies(): Promise<void> {
   const moduleInfos = await moduletools.getAllModulesAndInstalledDependenciesDeep();
 
-  return Promise.all(moduleInfos.modules.map((moduleInfo) => {
+  // tslint:disable-next-line:no-any
+  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
     return systools.delete(path.join(moduleInfo.fullModulePath, 'node_modules'));
   }));
 }
 
-async function run() {
-  const startTime = Date.now();
+async function run(): Promise<void> {
+  const startTime: number = Date.now();
 
   setupLogger();
-  logger.level = 'info';
+  (<any> logger).level = 'info';
   parseProcessArguments();
 
   systools.setLogger(logger);
@@ -866,7 +878,7 @@ async function run() {
     moduletools.setCommandConcatSymbol(commandConcatSymbol);
   }
 
-  const pathParts = cwd.split(path.sep);
+  const pathParts: Array<string> = cwd.split(path.sep);
   projectFolderName = pathParts[pathParts.length - 1];
   logger.debug('project folder name:', projectFolderName);
 
@@ -894,7 +906,7 @@ async function run() {
       await cleanupDependencies();
     }
 
-    const updatedModules = await installModuleDependencies();
+    await installModuleDependencies();
     await runPostinstalls();
     logIfInRoot(`\nminstall finished in ${systools.getRuntime(startTime)} :)\n\n`);
   } catch (error) {

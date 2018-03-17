@@ -6,18 +6,19 @@ let logger = null;
 
 export const systools = {
 
-  setLogger(_logger) {
+  setLogger(_logger): void {
     logger = _logger;
   },
 
-  logVerbose() {
+  logVerbose(): boolean {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   },
 
-  delete(location) {
+  delete(location: string): Promise<void> {
     logger.verbose('delete', location);
-    return new Promise((resolve, reject) => {
-      fs.remove(location, (error) => {
+
+    return new Promise((resolve: Function, reject: Function): void => {
+      fs.remove(location, (error: NodeJS.ErrnoException) => {
         if (error) {
           if (error.code === 'ENOENT') {
             return resolve();
@@ -25,6 +26,7 @@ export const systools = {
 
           // even if the delete-command failed (e.g. when there was nothing to delete),
           // the script should continue, thus there is no reject
+          // tslint:disable-next-line:no-console
           console.log(`error deleting '${location}'`, error);
         }
 
@@ -33,10 +35,11 @@ export const systools = {
     });
   },
 
-  link(modulePath, targetPath) {
+  link(modulePath: string, targetPath: string): Promise<void> {
     logger.verbose('link', modulePath, '->', targetPath);
-    return new Promise((resolve, reject) => {
-      fs.ensureSymlink(modulePath, targetPath, 'junction', (error) => {
+
+    return new Promise((resolve: Function, reject: Function): void => {
+      fs.ensureSymlink(modulePath, targetPath, 'junction', (error: Error) => {
 
         // even if the link-command failed (e.g. when the link already exists),
         // the script should continue, thus there is no reject
@@ -45,19 +48,21 @@ export const systools = {
     });
   },
 
-  runCommand(command, silent = false) {
-
+  runCommand(command: string, silent: boolean = false): Promise<string> {
     logger.verbose('running command', command);
-    return new Promise((resolve, reject) => {
-      exec(command, {maxBuffer: 2097152}, (error, stdout, stderr) => {
+
+    return new Promise<string>((resolve: Function, reject: Function): void => {
+      exec(command, {maxBuffer: 2097152}, (error: Error, stdout: string, stderr: string) => {
         if (error !== null) {
           logger.error('ERROR RUNNING COMMAND', command, error);
+
           return reject(error);
         }
 
         if (stderr) {
           if (this.logVerbose()) {
             logger.verbose(`stderr:\n${stderr}`);
+
             return reject(new Error(''));
           }
 
@@ -67,15 +72,16 @@ export const systools = {
         if (stdout.length > 0 && !silent) {
           process.stdout.write(`\n${stdout}`);
         }
+
         return resolve(stdout);
       });
     });
   },
 
-  async getFolderNames(folderPath) {
-    const folderNames = await new Promise<Array<string>>((resolve, reject) => {
+  async getFolderNames(folderPath: string): Promise<Array<string>> {
+    const folderNames: Array<string> = await new Promise<Array<string>>((resolve: Function, reject: Function): void => {
 
-      fs.readdir(folderPath, (error, files) => {
+      fs.readdir(folderPath, (error: NodeJS.ErrnoException, files: Array<string>) => {
         if (error) {
           if (error.code === 'ENOENT') {
             return resolve([]);
@@ -84,25 +90,26 @@ export const systools = {
           return reject(error);
         }
 
-        return resolve(Promise.all<string>(files.map((file) => {
+        return resolve(Promise.all<string>(files.map((file: string) => {
           return this.verifyFolderName(folderPath, file);
         })));
       });
     });
 
-    return folderNames.filter((folderName) => {
+    return folderNames.filter((folderName: string) => {
       return folderName !== null;
     });
   },
 
-  verifyFolderName(folderPath, folderName) {
+  verifyFolderName(folderPath: string, folderName: string): Promise<string> {
     if (folderName.indexOf('.') === 0) {
       return Promise.resolve(null);
     }
 
-    const folder = path.join(folderPath, folderName);
-    return new Promise((resolve, reject) => {
-      fs.stat(folder, (error, stats) => {
+    const folder: string = path.join(folderPath, folderName);
+
+    return new Promise((resolve: Function, reject: Function): void => {
+      fs.stat(folder, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
         if (error) {
           if (error.code === 'ENOENT') {
             return resolve(null);
@@ -120,9 +127,9 @@ export const systools = {
     });
   },
 
-  isSymlink(location) {
-    return new Promise((resolve, reject) => {
-      fs.lstat(location, (error, stats) => {
+  isSymlink(location: string): Promise<boolean> {
+    return new Promise((resolve: Function, reject: Function): void => {
+      fs.lstat(location, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
         if (error) {
           return reject(error);
         }
@@ -132,15 +139,21 @@ export const systools = {
     });
   },
 
-  getRuntime(start) {
-    let runSeconds = Math.round((Date.now() - start) / 1000);
-    const runMinutes = Math.floor(runSeconds / 60);
+  getRuntime(start: number): string {
+    // tslint:disable-next-line:no-magic-numbers
+    let runSeconds: number = Math.round((Date.now() - start) / 1000);
+
+    // tslint:disable-next-line:no-magic-numbers
+    const runMinutes: number = Math.floor(runSeconds / 60);
+
+    // tslint:disable-next-line:no-magic-numbers
     runSeconds %= 60;
 
     if (runMinutes === 0) {
       return `${runSeconds} seconds`;
     }
 
+    // tslint:disable-next-line:no-magic-numbers
     if (runSeconds < 10) {
       return `${runMinutes}:0${runSeconds} minutes`;
     }

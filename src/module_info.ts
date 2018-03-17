@@ -1,12 +1,24 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export interface DependencyEntry {
+export interface DependencyEntries {
   [dependency: string]: string;
 }
 
 export interface BinEntry {
   [dependency: string]: string;
+}
+
+export interface PackageJson {
+  name: string;
+  version: string;
+  dependencies?: DependencyEntries;
+  devDependencies?: DependencyEntries;
+  peerDependencies?: DependencyEntries;
+  scripts: {
+    [scriptName: string]: string;
+  };
+  bin: string | BinEntry;
 }
 
 export class ModuleInfo {
@@ -16,7 +28,7 @@ export class ModuleInfo {
   private _folderName: string;
   private _name: string;
   private _version: string;
-  private _dependencies: [DependencyEntry];
+  private _dependencies: DependencyEntries;
   private _postinstallCommand: string;
   private _isScoped: boolean = false;
   private _fullModulePath: string;
@@ -27,7 +39,7 @@ export class ModuleInfo {
     folderName: string,
     name: string,
     version: string,
-    dependencies: [DependencyEntry],
+    dependencies: DependencyEntries,
     postinstallCommand: string,
     bin: string | BinEntry,
   ) {
@@ -53,73 +65,73 @@ export class ModuleInfo {
     }
 
     if (name.charAt(0) === '@') {
-      const moduleNameParts = name.split('/');
+      const moduleNameParts: Array<string> = name.split('/');
       this._folderName = path.join(moduleNameParts[0], moduleNameParts[1]);
       this._isScoped = true;
     }
   }
 
-  public get location() {
+  public get location(): string {
     return this._location;
   }
 
-  public get fullModulePath() {
+  public get fullModulePath(): string {
     return this._fullModulePath;
   }
 
   // gets the folder-name the module should have according to it's module-name
-  public get folderName() {
+  public get folderName(): string {
     return this._folderName;
   }
 
   // get's the folder-name the module actually has on the disk.
   // This should only differ from folderName for local modules,
   // never for modules within node_modules
-  public get realFolderName() {
+  public get realFolderName(): string {
     return this._realFolderName;
   }
 
-  public get name() {
+  public get name(): string {
     return this._name;
   }
 
-  public get version() {
+  public get version(): string {
     return this._version;
   }
 
-  public get dependencies() {
+  public get dependencies(): DependencyEntries {
     return this._dependencies;
   }
 
-  public get postinstallCommand() {
+  public get postinstallCommand(): string {
     return this._postinstallCommand;
   }
 
-  public get isScoped() {
+  public get isScoped(): boolean {
     return this._isScoped;
   }
 
-  public get bin() {
+  public get bin(): BinEntry {
     return this._bin;
   }
 
-  public static loadFromFolder(rootFolder, moduleFolder) {
-    return new Promise((resolve, reject) => {
-      const packagePath = path.join(rootFolder, moduleFolder, 'package.json');
+  public static loadFromFolder(rootFolder: string, moduleFolder: string): Promise<ModuleInfo> {
+    return new Promise((resolve: Function, reject: Function): void => {
+      const packagePath: string = path.join(rootFolder, moduleFolder, 'package.json');
 
-      fs.readFile(packagePath, 'utf8', (error, data) => {
+      fs.readFile(packagePath, 'utf8', (error: Error, data: string) => {
         if (error) {
           return reject(error);
         }
 
-        let packageInfo;
+        let packageInfo: PackageJson;
         try {
           packageInfo = JSON.parse(data);
         } catch (parseError) {
           throw new Error(`couldn't parse package.json at '${packagePath}': ${parseError.message}`);
         }
 
-        const dependencies = packageInfo.dependencies || [];
+        const dependencies: DependencyEntries = packageInfo.dependencies || {};
         if ((!process.env.NODE_ENV || process.env.NODE_ENV !== 'production')
             && packageInfo.devDependencies) {
           for (const dependency in packageInfo.devDependencies) {
@@ -133,7 +145,7 @@ export class ModuleInfo {
           }
         }
 
-        let postinstallCommand = null;
+        let postinstallCommand: string = null;
         if (packageInfo.scripts && packageInfo.scripts.postinstall) {
           postinstallCommand = packageInfo.scripts.postinstall;
         }
