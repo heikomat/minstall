@@ -1,22 +1,19 @@
 #!/usr/bin/env node
+import * as Promise from 'bluebird';
+import * as minimatch from 'minimatch';
+import * as os from 'os';
+import * as path from 'path';
+import * as readline from 'readline';
+import * as semver from 'semver';
+import {intersect} from 'semver-intersect';
+import * as logger from 'winston';
 
-'use strict';
+const cwd: string = process.cwd();
 
-const os = require('os');
-const path = require('path');
-const Promise = require('bluebird');
-const readline = require('readline');
-const logger = require('winston');
-const intersect = require('semver-intersect').intersect;
-const semver = require('semver');
-const minimatch = require("minimatch")
-
-const cwd = process.cwd();
-
-const UncriticalError = require('./UncriticalError.js');
-const systools = require('./systools.js');
-const moduletools = require('./moduletools.js');
-const ModuleInfo = require('./ModuleInfo');
+import {ModuleInfo} from './module_info';
+import {moduletools} from './moduletools';
+import {systools} from './systools';
+import {UncriticalError} from './uncritical_error';
 
 let commandConcatSymbol = ';';
 let isInProjectRoot = true;
@@ -68,7 +65,7 @@ function checkStartConditions() {
       // and log when npm >= 5.7.1 is confirmed working without that workaround
       // if (semver.satisfies(npmVersion, '>=5.0.0 <5.7.0')) {
       if (semver.major(npmVersion) === 5) {
-        //logger.info('npm >=5.0.0 <5.7.0 detected. forcing --cleanup');
+        // logger.info('npm >=5.0.0 <5.7.0 detected. forcing --cleanup');
         logger.info('npm 5 detected. forcing --cleanup');
         cleanup = true;
       }
@@ -84,7 +81,7 @@ function checkStartConditions() {
         installedAsDependency = true;
       }
 
-      if (folderName == null) {
+      if (folderName === null) {
         logger.debug('project folder has no node_modules-folder');
 
         if (!installedAsDependency) {
@@ -101,7 +98,7 @@ function checkStartConditions() {
       return systools.verifyFolderName(cwd, moduletools.modulesFolder);
     })
     .then((folderName) => {
-      if (folderName == null) {
+      if (folderName === null) {
         throw new UncriticalError(`${moduletools.modulesFolder} not found, thus minstall is done :)`);
       }
 

@@ -1,15 +1,13 @@
-'use strict';
-
-const fs = require('fs');
-const path = require('path');
-const Promise = require('bluebird');
-const systools = require('./systools');
-const ModuleInfo = require('./ModuleInfo');
-const semver = require('semver');
+import * as Promise from 'bluebird';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as semver from 'semver';
+import {ModuleInfo} from './module_info';
+import {systools} from './systools';
 
 let logger = null;
 
-const moduletools = {
+export const moduletools = {
 
   modulesFolder: 'modules',
   nullTarget: '/dev/null',
@@ -70,12 +68,12 @@ const moduletools = {
 
           result.modules = result.modules.concat(moduleAndDependencyInfo.modules)
             .filter((module) => {
-              return module != null;
+              return module !== null;
             });
 
           result.installedDependencies = result.installedDependencies.concat(moduleAndDependencyInfo.installedDependencies)
             .filter((module) => {
-              return module != null;
+              return module !== null;
             });
         }
 
@@ -103,7 +101,7 @@ const moduletools = {
       })
       .then((moduleNames) => {
         const modules = moduleNames.filter((moduleName) => {
-          return moduleName != null;
+          return moduleName !== null;
         });
 
         // we can't open too many files at once :( read them sequentially
@@ -185,5 +183,3 @@ const moduletools = {
       });
   },
 };
-
-module.exports = moduletools;

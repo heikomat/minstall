@@ -1,10 +1,8 @@
-'use strict';
+import * as Promise from 'bluebird';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const fs = require('fs');
-const path = require('path');
-const Promise = require('bluebird');
-
-class ModuleInfo {
+export class ModuleInfo {
 
   constructor(location, folderName, name, version, dependencies, postinstallCommand, bin) {
     this._location = location;
@@ -34,51 +32,51 @@ class ModuleInfo {
     }
   }
 
-  get location() {
+  public get location() {
     return this._location;
   }
 
-  get fullModulePath() {
+  public get fullModulePath() {
     return this._fullModulePath;
   }
 
   // gets the folder-name the module should have according to it's module-name
-  get folderName() {
+  public get folderName() {
     return this._folderName;
   }
 
   // get's the folder-name the module actually has on the disk.
   // This should only differ from folderName for local modules,
   // never for modules within node_modules
-  get realFolderName() {
+  public get realFolderName() {
     return this._realFolderName;
   }
 
-  get name() {
+  public get name() {
     return this._name;
   }
 
-  get version() {
+  public get version() {
     return this._version;
   }
 
-  get dependencies() {
+  public get dependencies() {
     return this._dependencies;
   }
 
-  get postinstallCommand() {
+  public get postinstallCommand() {
     return this._postinstallCommand;
   }
 
-  get isScoped() {
+  public get isScoped() {
     return this._isScoped;
   }
 
-  get bin() {
+  public get bin() {
     return this._bin;
   }
 
-  static loadFromFolder(rootFolder, moduleFolder) {
+  public static loadFromFolder(rootFolder, moduleFolder) {
     return new Promise((resolve, reject) => {
       if (rootFolder === null || rootFolder === undefined) {
         rootFolder = this.modulesFolder;
@@ -124,5 +122,3 @@ class ModuleInfo {
   }
 
 }
-
-module.exports = ModuleInfo;

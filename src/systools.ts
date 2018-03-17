@@ -1,13 +1,11 @@
-'use strict';
-
-const fs = require('fs-extra');
-const path = require('path');
-const exec = require('child_process').exec;
-const Promise = require('bluebird');
+import * as Promise from 'bluebird';
+import {exec} from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let logger = null;
 
-const systools = {
+export const systools = {
 
   setLogger(_logger) {
     logger = _logger;
@@ -49,7 +47,7 @@ const systools = {
   },
 
   runCommand(command, silent) {
-    if (silent == undefined || silent == null) {
+    if (silent === undefined || silent === null) {
       silent = false;
     }
 
@@ -98,7 +96,7 @@ const systools = {
       .then((folderNames) => {
 
         return folderNames.filter((folderName) => {
-          return folderName != null;
+          return folderName !== null;
         });
       });
   },
@@ -155,5 +153,3 @@ const systools = {
     return `${runMinutes}:${runSeconds} minutes`;
   },
 };
-
-module.exports = systools;
