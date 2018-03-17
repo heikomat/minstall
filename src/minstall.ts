@@ -45,7 +45,7 @@ function getLocalPackageInfo() {
 
 async function checkStartConditions() {
   logger.debug('checking start conditions');
-  let results = await Promise.all([
+  const results = await Promise.all([
     systools.verifyFolderName(cwd, 'node_modules'),
     getLocalPackageInfo(),
     systools.runCommand('npm --version', true),
@@ -104,7 +104,7 @@ async function checkStartConditions() {
     return null;
   }
 
-  results = await Promise.all([
+  const nextResults = await Promise.all([
     systools.isSymlink(path.join(cwd, 'node_modules')),
     getLocalPackageInfo(),
   ]);
@@ -114,7 +114,7 @@ async function checkStartConditions() {
   }
 
   if (isInProjectRoot) {
-    isInProjectRoot = !results[0];
+    isInProjectRoot = !nextResults[0];
   }
 
   if (isInProjectRoot && !localPackage.dependencies.minstall) {

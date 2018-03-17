@@ -73,7 +73,7 @@ export const systools = {
   },
 
   async getFolderNames(folderPath) {
-    const folderNames = await new Promise((resolve, reject) => {
+    const folderNames = await new Promise<Array<string>>((resolve, reject) => {
 
       fs.readdir(folderPath, (error, files) => {
         if (error) {
@@ -84,7 +84,7 @@ export const systools = {
           return reject(error);
         }
 
-        return resolve(Promise.all(files.map((file) => {
+        return resolve(Promise.all<string>(files.map((file) => {
           return this.verifyFolderName(folderPath, file);
         })));
       });

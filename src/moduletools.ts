@@ -57,7 +57,7 @@ export const moduletools = {
     result.installedDependencies = result.installedDependencies.concat(currentLevelModules[1]);
 
     // recursively get the local modules and installed dependencies of all the other local modules
-    const otherLevelModules = await Promise.all(currentLevelModules[2].map((module) => {
+    const otherLevelModules: Array<any> = await Promise.all(currentLevelModules[2].map((module) => {
       return this.getAllModulesAndInstalledDependenciesDeep(module.fullModulePath, folderName);
     }));
 
@@ -91,7 +91,7 @@ export const moduletools = {
       return folderName.indexOf('@') === 0;
     });
 
-    const moduleNames = Promise.all(folderNames.map((folderName) => {
+    const moduleNames = await Promise.all(folderNames.map((folderName) => {
       return this.verifyModule(modulesPath, folderName);
     }));
 
@@ -100,16 +100,11 @@ export const moduletools = {
     });
 
     // we can't open too many files at once :( read them sequentially
-    const serialPromise = modules.reduce((previousPromise, moduleName) => {
-      return previousPromise.then(() => {
-        return ModuleInfo.loadFromFolder(path.join(location, rootFolder), moduleName)
-          .then((module) => {
-            result.push(module);
-          });
-      });
-    }, Promise.resolve());
-
-    const moduleInfos = await serialPromise;
+    const moduleInfos = [];
+    for (const moduleName of modules) {
+      const module = await ModuleInfo.loadFromFolder(path.join(location, rootFolder), moduleName);
+      moduleInfos.push(module);
+    }
 
     if (scopedFolder.length === 0) {
       return [];
