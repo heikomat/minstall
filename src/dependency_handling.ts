@@ -284,6 +284,74 @@ export async function findOptimalDependencyTargetFolder(linkModules: boolean,
   return determineDependencyTargetFolder(requestedDependencyArray, alreadyInstalledDependencies, noHoistList);
 }
 
+function _findDirectlyInstalledDependency(targetModule: ModuleInfo, dependencyName: string, installedDependencies: Array<ModuleInfo>): ModuleInfo {
+  return installedDependencies.find((installedDependency: ModuleInfo) => {
+    if (installedDependency.name !== dependencyName) {
+      return false;
+    }
+
+    const targetPath: string = path.join(targetModule.fullModulePath, 'node_modules', installedDependency.folderName);
+    const dependencyIsInstalledDirectlyToModule: boolean = installedDependency.fullModulePath === targetPath;
+
+    return dependencyIsInstalledDirectlyToModule;
+  });
+}
+
+function _findLocalModuleAsDependency(dependencyName: string,
+                                      requestedVersionRange: SemverRange,
+                                      localModules: Array<ModuleInfo>,
+                                      assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean): ModuleInfo {
+  return localModules.find((localModule: ModuleInfo) => {
+    if (localModule.name !== dependencyName) {
+      return false;
+    }
+
+    const rangeIsValidAndSatisfied: boolean = semver.validRange(requestedVersionRange)
+                                           && semver.satisfies(localModule.version, requestedVersionRange);
+
+    const rangeIsInvalidAndAssumedToBeSatisfied: boolean = !semver.validRange(requestedVersionRange)
+                                                         && assumeLocalModulesSatisfyNonSemverDependencyVersions;
+
+    const dependencyIsSatisfiedByLocalModule: boolean = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
+
+    return dependencyIsSatisfiedByLocalModule;
+  });
+}
+
+function _findInstalledDependency(targetModule: ModuleInfo,
+                                  dependencyName: string,
+                                  requestedVersionRange: SemverRange,
+                                  installedDependencies: Array<ModuleInfo>): ModuleInfo {
+
+  return installedDependencies.find((installedDependency: ModuleInfo) => {
+    if (installedDependency.name !== dependencyName) {
+      return false;
+    }
+
+    return semver.satisfies(installedDependency.version, requestedVersionRange);
+  });
+}
+
+function _symlinkDependencyIntoModule(sourceDependency: ModuleInfo, targetModule: ModuleInfo): Array<Promise<void>> {
+  const symlinkPromises: Array<Promise<void>> = [];
+
+  // simlink the dependency
+  const sourceDependencyPath: string = sourceDependency.fullModulePath;
+  const targetDependencyPath: string = path.join(targetModule.fullModulePath, 'node_modules', sourceDependency.folderName);
+  symlinkPromises.push(SystemTools.link(sourceDependencyPath, targetDependencyPath));
+
+  // create all the .bin-symlinks
+  // TODO: this won't work for packets that define a custom bin-folder.
+  // This is so super-rare though, that it's not important for now
+  for (const binEntry in sourceDependency.bin) {
+    const sourceFile: string = path.join(sourceDependency.fullModulePath, sourceDependency.bin[binEntry]);
+    const targetLink: string = path.join(targetModule.fullModulePath, 'node_modules', '.bin', binEntry);
+    symlinkPromises.push(SystemTools.link(sourceFile, targetLink));
+  }
+
+  return symlinkPromises;
+}
+
 export async function fixMissingDependenciesWithSymlinks(linkModules: boolean,
                                                          assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean): Promise<void> {
 
@@ -292,71 +360,38 @@ export async function fixMissingDependenciesWithSymlinks(linkModules: boolean,
     installedDependencies: installedDependencies,
   } = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
-  const symlinkPromises: Array<Promise<void>> = [];
+  let symlinkPromises: Array<Promise<void>> = [];
 
   for (const module of localModules) {
     for (const dependency in module.dependencies) {
+
+      // if the dependency is already installed directly into the modules node_modules, there is nothing left to do
+      if (_findDirectlyInstalledDependency(module, dependency, installedDependencies) !== undefined) {
+        continue;
+      }
+
+      let fittingInstalledModule: ModuleInfo;
       const requestedDependencyVersionRange: string = module.dependencies[dependency];
-      // check if the dependency is already installed localy
-      let dependencyAlreadyInstalled: boolean = false;
-      let fittingInstalledModule: ModuleInfo = null;
-      for (const installedModule of installedDependencies) {
-        if (installedModule.name !== dependency) {
-          continue;
-        }
 
-        if (installedModule.fullModulePath === path.join(module.fullModulePath, 'node_modules', installedModule.folderName)) {
-          fittingInstalledModule = installedModule;
-          dependencyAlreadyInstalled = true;
-          break;
-        } else if (semver.satisfies(installedModule.version, requestedDependencyVersionRange)) {
-          fittingInstalledModule = installedModule;
-        }
+      // if we are allowed to link local modules, see if one of them satisfies the dependency
+      if (linkModules) {
+        fittingInstalledModule = _findLocalModuleAsDependency(dependency,
+                                                              requestedDependencyVersionRange,
+                                                              localModules,
+                                                              assumeLocalModulesSatisfyNonSemverDependencyVersions);
       }
 
-      // when no installed module was found, see if a local module fits the dependency
-      // but only if local modules are supposed to be linked
-      // this overwrites otherwise found dependencies if they are not installed
-      // directly in the modules node_modules-folder
-      // in short, the order is: direct install > local module > indirect install
-      if ((!fittingInstalledModule || !dependencyAlreadyInstalled) && linkModules) {
-        for (const localModule of localModules) {
-
-          const rangeIsValidAndSatisfied: boolean = semver.validRange(requestedDependencyVersionRange)
-                                                 && semver.satisfies(localModule.version, requestedDependencyVersionRange);
-
-          const rangeIsInvalidAndAssumedToBeSatisfied: boolean = !semver.validRange(requestedDependencyVersionRange)
-                                                               && assumeLocalModulesSatisfyNonSemverDependencyVersions;
-
-          const dependencyIsSatisfiedByLocalModule: boolean = rangeIsValidAndSatisfied || rangeIsInvalidAndAssumedToBeSatisfied;
-          if (localModule.name !== dependency || !dependencyIsSatisfiedByLocalModule) {
-            continue;
-          }
-
-          fittingInstalledModule = localModule;
-          break;
-        }
+      // if the dependency isn't directly installed, and no local module sastisfies it, see if a matching dependency is installed somewhere else
+      if (fittingInstalledModule === undefined) {
+        fittingInstalledModule = _findInstalledDependency(module, dependency, requestedDependencyVersionRange, installedDependencies);
       }
 
-      if (!dependencyAlreadyInstalled) {
-        if (!fittingInstalledModule) {
-          logger.error(`NO INSTALLATION FOUND FOR DEPENDENCY ${dependency} ON ${module.fullModulePath}. This shouldn't happen!`);
-        } else {
-          // simlink the dependency
-          const sourceDependencyPath: string = fittingInstalledModule.fullModulePath;
-          const targetDependencyPath: string = path.join(module.fullModulePath, 'node_modules', fittingInstalledModule.folderName);
-          symlinkPromises.push(SystemTools.link(sourceDependencyPath, targetDependencyPath));
-
-          // create all the .bin-symlinks
-          // TODO: this won't work for packets that define a custom bin-folder.
-          // This is so super-rare though, that it's not important for now
-          for (const binEntry in fittingInstalledModule.bin) {
-            const sourceFile: string = path.join(fittingInstalledModule.fullModulePath, fittingInstalledModule.bin[binEntry]);
-            const targetLink: string = path.join(module.fullModulePath, 'node_modules', '.bin', binEntry);
-            symlinkPromises.push(SystemTools.link(sourceFile, targetLink));
-          }
-        }
+      if (fittingInstalledModule === undefined) {
+        logger.error(`NO INSTALLATION FOUND FOR DEPENDENCY ${dependency} ON ${module.fullModulePath}. This shouldn't happen!`);
+        continue;
       }
+
+      symlinkPromises = symlinkPromises.concat(_symlinkDependencyIntoModule(fittingInstalledModule, module));
     }
   }
 
