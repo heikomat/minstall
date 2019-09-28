@@ -6,8 +6,6 @@ import * as readline from 'readline';
 import * as semver from 'semver';
 import * as logger from 'winston';
 
-const cwd: string = process.cwd();
-
 import {
   findOptimalDependencyTargetFolder,
   findRequestedDependencies,
@@ -16,24 +14,28 @@ import {
   printNonOptimalLocalModuleUsage,
   removeContradictingInstalledDependencies,
 } from './dependency_handling';
-import {DependencyInfo, DependencyRequests, DependencyTargetFolder, ModulesAndDependenciesInfo} from './interfaces';
+import {
+  DependencyInfo, DependencyRequests, DependencyTargetFolder, ModulesAndDependenciesInfo,
+} from './interfaces';
 import {ModuleInfo} from './module_info';
 import {ModuleTools} from './moduletools';
 import {SystemTools} from './systools';
 import {UncriticalError} from './uncritical_error';
 
-let commandConcatSymbol: string = ';';
+const cwd: string = process.cwd();
+
+let commandConcatSymbol = ';';
 let localPackage: ModuleInfo = null;
 
-let installedAsDependency: boolean = false;
+let installedAsDependency = false;
 let projectFolderName: string = null;
-let linkModules: boolean = true;
+let linkModules = true;
 let npmVersion: string = null;
-let cleanup: boolean = false;
-let dependencyCheckOnly: boolean = false;
-let linkOnly: boolean = false;
-let isInProjectRoot: boolean = true;
-let assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean = false;
+let cleanup = false;
+let dependencyCheckOnly = false;
+let linkOnly = false;
+let isInProjectRoot = true;
+let assumeLocalModulesSatisfyNonSemverDependencyVersions = false;
 const noHoistList: Array<DependencyInfo> = [];
 
 function logVerbose(): boolean {
@@ -54,7 +56,7 @@ function getLocalPackageInfo(): Promise<ModuleInfo> {
 async function _checkNpmVersion(): Promise<void> {
   npmVersion = await SystemTools.runCommand('npm --version', true);
   if (semver.satisfies(npmVersion, '5.7.0')) {
-    logger.error(`You're using npm 5.7.0. Do not use this version, it has a critical bug that is fixed in 5.7.1. See npm-issue #19883 for more info`);
+    logger.error('You\'re using npm 5.7.0. Do not use this version, it has a critical bug that is fixed in 5.7.1. See npm-issue #19883 for more info');
     process.exit(1);
   }
 
@@ -62,7 +64,7 @@ async function _checkNpmVersion(): Promise<void> {
   // and log when some npm version is confirmed working without that workaround.
   // even 5.7.1 is not working correctly without that workaround
   // if (semver.satisfies(npmVersion, '>=5.0.0 <5.7.0')) {
-  const buggyNpmVersion: number = 5;
+  const buggyNpmVersion = 5;
   if (semver.major(npmVersion) === buggyNpmVersion) {
     // logger.info('npm >=5.0.0 <5.7.0 detected. forcing --cleanup');
     logger.info('npm 5 detected. forcing --cleanup');
@@ -80,10 +82,10 @@ async function checkStartConditions(): Promise<void> {
 
   localPackage = await getLocalPackageInfo();
   if (!localPackage.isScoped) {
-    const parentFolderIndexDifference: number = 2;
+    const parentFolderIndexDifference = 2;
     parentFolder = pathParts[pathParts.length - parentFolderIndexDifference];
   } else {
-    const scopedParentFolderIndexDifference: number = 3;
+    const scopedParentFolderIndexDifference = 3;
     parentFolder = pathParts[pathParts.length - scopedParentFolderIndexDifference];
   }
 
@@ -135,7 +137,7 @@ function setupLogger(): void {
     prettyPrint: true,
   });
 
-  const logLevels: {[loglevel: string]: {level: number, color: string}} = {
+  const logLevels: {[loglevel: string]: {level: number; color: string}} = {
     critical: {level: 0, color: 'red'},
     error: {level: 1, color: 'magenta'},
     warn: {level: 2, color: 'yellow'},
@@ -161,7 +163,7 @@ function printInstallationStatus(startedInstallationCount: number, finishedInsta
   readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
   const installationStatus: Array<string> = [];
-  for (let index: number = 0; index < startedInstallationCount; index++) {
+  for (let index = 0; index < startedInstallationCount; index++) {
     if (finishedInstallations.indexOf(index) >= 0) {
       installationStatus.push(`${index + 1}: ✓`);
     } else {
@@ -175,18 +177,20 @@ function printInstallationStatus(startedInstallationCount: number, finishedInsta
 async function installModuleDependencies(): Promise<void> {
 
   await removeContradictingInstalledDependencies();
-  const targets: DependencyTargetFolder = await findOptimalDependencyTargetFolder(linkModules,
-                                                                                  assumeLocalModulesSatisfyNonSemverDependencyVersions,
-                                                                                  noHoistList);
+  const targets: DependencyTargetFolder = await findOptimalDependencyTargetFolder(
+    linkModules,
+    assumeLocalModulesSatisfyNonSemverDependencyVersions,
+    noHoistList,
+  );
 
   // targets is an array where each entry has a location and a list of modules that should be installed
   const installPromises: Array<Promise<void>> = [];
 
-  let startedInstallationCount: number = 0;
+  let startedInstallationCount = 0;
   const finishedInstallations: Array<number> = [];
   for (const targetFolder in targets) {
 
-    const shortTargetFolder: string = `.${targetFolder.substr(cwd.length)}`;
+    const shortTargetFolder = `.${targetFolder.substr(cwd.length)}`;
     const installationIndex: number = startedInstallationCount;
     startedInstallationCount++;
 
@@ -248,7 +252,7 @@ async function deleteLinkedLocalModules(): Promise<void> {
 }
 
 function parseProcessArguments(): void {
-  for (let i: number = 2; i < process.argv.length; i++) {
+  for (let i = 2; i < process.argv.length; i++) {
     if (process.argv[i].indexOf('--') !== 0) {
       ModuleTools.setModulesFolder(process.argv[i]);
     } else if (process.argv[i] === '--loglevel') {

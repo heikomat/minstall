@@ -8,9 +8,9 @@ import {SystemTools} from './systools';
 
 export class ModuleTools {
 
-  public static modulesFolder: string = 'modules';
-  public static nullTarget: string = '/dev/null';
-  public static commandConcatSymbol: string = ';';
+  public static modulesFolder = 'modules';
+  public static nullTarget = '/dev/null';
+  public static commandConcatSymbol = ';';
 
   public static setModulesFolder(modulesFolder: string): void {
     this.modulesFolder = modulesFolder;
@@ -28,8 +28,10 @@ export class ModuleTools {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   }
 
-  public static async getAllModulesAndInstalledDependenciesDeep(location: string = process.cwd(),
-                                                                folderName: string = this.modulesFolder): Promise<ModulesAndDependenciesInfo> {
+  public static async getAllModulesAndInstalledDependenciesDeep(
+    location: string = process.cwd(),
+    folderName: string = this.modulesFolder,
+  ): Promise<ModulesAndDependenciesInfo> {
     const result: ModulesAndDependenciesInfo = {
       modules: [],
       installedDependencies: [],
@@ -41,9 +43,9 @@ export class ModuleTools {
       installedModulesInfo,
       localSubmodulesInfo,
     ] = await Promise.all([
-      ModuleInfo.loadFromFolder(location, ''),    // get infos about the current module
-      this.getModules(location, 'node_modules'),  // get infos about installed modules in the current module
-      this.getModules(location, folderName),      // get infos about local submodules of the current module
+      ModuleInfo.loadFromFolder(location, ''), // get infos about the current module
+      this.getModules(location, 'node_modules'), // get infos about installed modules in the current module
+      this.getModules(location, folderName), // get infos about local submodules of the current module
     ]);
 
     result.modules.push(currentModuleInfo);
@@ -135,8 +137,8 @@ export class ModuleTools {
       return packet.identifier;
     });
 
-    let npmiLoglevel: string = 'error';
-    let nullTarget: string = ` > ${this.nullTarget}`;
+    let npmiLoglevel = 'error';
+    let nullTarget = ` > ${this.nullTarget}`;
     if (this.logVerbose()) {
       npmiLoglevel = 'info';
       nullTarget = '';
@@ -160,4 +162,5 @@ export class ModuleTools {
       process.stdout.write(error.message);
     }
   }
+
 }

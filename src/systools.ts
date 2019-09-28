@@ -45,7 +45,7 @@ export class SystemTools {
     });
   }
 
-  public static runCommand(command: string, silent: boolean = false): Promise<string> {
+  public static runCommand(command: string, silent = false): Promise<string> {
     logger.verbose('running command', command);
 
     return new Promise<string>((resolve: Function, reject: Function): void => {
@@ -158,4 +158,5 @@ export class SystemTools {
 
     return `${runMinutes}:${runSeconds} minutes`;
   }
+
 }

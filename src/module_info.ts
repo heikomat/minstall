@@ -30,7 +30,7 @@ export class ModuleInfo {
   private _version: string;
   private _dependencies: DependencyEntries;
   private _postinstallCommand: string;
-  private _isScoped: boolean = false;
+  private _isScoped = false;
   private _fullModulePath: string;
   private _bin: {[name: string]: string};
 
@@ -150,8 +150,10 @@ export class ModuleInfo {
           postinstallCommand = packageInfo.scripts.postinstall;
         }
 
-        return resolve(new ModuleInfo(rootFolder, moduleFolder, packageInfo.name,
-                                      packageInfo.version, dependencies, postinstallCommand, packageInfo.bin));
+        return resolve(new ModuleInfo(
+          rootFolder, moduleFolder, packageInfo.name,
+          packageInfo.version, dependencies, postinstallCommand, packageInfo.bin,
+        ));
       });
     });
   }

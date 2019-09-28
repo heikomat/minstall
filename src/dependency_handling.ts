@@ -28,7 +28,7 @@ export function findRequestedDependencies(localModules: Array<ModuleInfo>): Depe
         requestedDependencies[dependency] = {};
       }
 
-      let versionIsAlreadyRequestedByAModule: boolean = false;
+      let versionIsAlreadyRequestedByAModule = false;
       for (const version in requestedDependencies[dependency]) {
         let intersection: SemverRange = null;
         try {
@@ -78,7 +78,7 @@ export function findRequestedDependencies(localModules: Array<ModuleInfo>): Depe
 export function printNonOptimalDependencyInfos(requestedDependencies: DependencyRequests): void {
   let requestedDependencyArray: Array<DependencyRequestInfo> = dependenciesToArray(requestedDependencies);
   requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
-  let initialMessagePrinted: boolean = false;
+  let initialMessagePrinted = false;
 
   for (const requestedDependencyName in requestedDependencies) {
     if (Object.keys(requestedDependencies[requestedDependencyName]).length <= 1) {
@@ -100,14 +100,16 @@ export function printNonOptimalDependencyInfos(requestedDependencies: Dependency
     const requestedByOtherPackagesString: string = requestedVersions.map((requestedVersion: DependencyRequestInfo) => {
       const requestedByString: string = requestedVersion.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
-      }).join('\n|     ');
+      })
+        .join('\n|     ');
 
       return `
 |   version ${requestedVersion.versionRange} satisfies ${requestedVersion.requestedBy.length} local modules:
 |     ${requestedByString}`;
-    }).join('\n| ');
+    })
+      .join('\n| ');
 
-  // tslint:disable:max-line-length
+    // tslint:disable:max-line-length
     console.log(`|
 | ${mostRequested.requestedBy.length} local modules are satisfied with version ${mostRequested.versionRange} of ${mostRequested.name}, but some aren't:${requestedByOtherPackagesString}`);
   }
@@ -121,12 +123,14 @@ export function printNonOptimalDependencyInfos(requestedDependencies: Dependency
   }
 }
 
-export function printNonOptimalLocalModuleUsage(localModules: Array<ModuleInfo>,
-                                                requestedDependencies: DependencyRequests,
-                                                assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean): void {
+export function printNonOptimalLocalModuleUsage(
+  localModules: Array<ModuleInfo>,
+  requestedDependencies: DependencyRequests,
+  assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
+): void {
   let requestedDependencyArray: Array<DependencyRequestInfo> = dependenciesToArray(requestedDependencies);
   requestedDependencyArray = sortDependenciesByRequestCount(requestedDependencyArray);
-  let initialMessagePrinted: boolean = false;
+  let initialMessagePrinted = false;
 
   for (const requestedDependencyName in requestedDependencies) {
     const localVersionOfDependency: ModuleInfo = localModules.find((localModule: ModuleInfo) => {
@@ -179,12 +183,14 @@ export function printNonOptimalLocalModuleUsage(localModules: Array<ModuleInfo>,
     const requestedByOtherPackagesString: string = requestedWithIncompatibleVersion.map((requestedVersion: DependencyRequestInfo) => {
       const requestedByString: string = requestedVersion.requestedBy.map((requestedByPath: string) => {
         return `.${requestedByPath.substr(cwd.length)}`;
-      }).join('\n|     ');
+      })
+        .join('\n|     ');
 
       return `
 |   version ${requestedVersion.versionRange} is requested by ${requestedVersion.requestedBy.length} local modules:
 |     ${requestedByString}`;
-    }).join('\n| ');
+    })
+      .join('\n| ');
 
     // tslint:disable:max-line-length
     console.log(`|
@@ -244,9 +250,11 @@ export async function removeContradictingInstalledDependencies(): Promise<Array<
   return Promise.all(deletionPromises);
 }
 
-export async function findOptimalDependencyTargetFolder(linkModules: boolean,
-                                                        assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
-                                                        noHoistList: Array<DependencyInfo>): Promise<DependencyTargetFolder> {
+export async function findOptimalDependencyTargetFolder(
+  linkModules: boolean,
+  assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
+  noHoistList: Array<DependencyInfo>,
+): Promise<DependencyTargetFolder> {
   // create a list of places where dependencies should go. Remember to not install
   // dependencies that appear in the modules list, except when they won't be linked.
 
@@ -263,11 +271,13 @@ export async function findOptimalDependencyTargetFolder(linkModules: boolean,
 
   // remove all dependencies that are already satisfied by the current
   // installation or will be satisfied by linked local modules
-  requestedDependencies = removeAlreadySatisfiedDependencies(requestedDependencies,
-                                                             localModules,
-                                                             alreadyInstalledDependencies,
-                                                             linkModules,
-                                                             assumeLocalModulesSatisfyNonSemverDependencyVersions);
+  requestedDependencies = removeAlreadySatisfiedDependencies(
+    requestedDependencies,
+    localModules,
+    alreadyInstalledDependencies,
+    linkModules,
+    assumeLocalModulesSatisfyNonSemverDependencyVersions,
+  );
 
   // now we know exactly what dependencies are missing where
   // next: calculate the optimal installation-folders, so that as few installs
@@ -297,10 +307,12 @@ function _findDirectlyInstalledDependency(targetModule: ModuleInfo, dependencyNa
   });
 }
 
-function _findLocalModuleAsDependency(dependencyName: string,
-                                      requestedVersionRange: SemverRange,
-                                      localModules: Array<ModuleInfo>,
-                                      assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean): ModuleInfo {
+function _findLocalModuleAsDependency(
+  dependencyName: string,
+  requestedVersionRange: SemverRange,
+  localModules: Array<ModuleInfo>,
+  assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
+): ModuleInfo {
   return localModules.find((localModule: ModuleInfo) => {
     if (localModule.name !== dependencyName) {
       return false;
@@ -318,10 +330,12 @@ function _findLocalModuleAsDependency(dependencyName: string,
   });
 }
 
-function _findInstalledDependency(targetModule: ModuleInfo,
-                                  dependencyName: string,
-                                  requestedVersionRange: SemverRange,
-                                  installedDependencies: Array<ModuleInfo>): ModuleInfo {
+function _findInstalledDependency(
+  targetModule: ModuleInfo,
+  dependencyName: string,
+  requestedVersionRange: SemverRange,
+  installedDependencies: Array<ModuleInfo>,
+): ModuleInfo {
 
   return installedDependencies.find((installedDependency: ModuleInfo) => {
     if (installedDependency.name !== dependencyName) {
@@ -352,12 +366,14 @@ function _symlinkDependencyIntoModule(sourceDependency: ModuleInfo, targetModule
   return symlinkPromises;
 }
 
-export async function fixMissingDependenciesWithSymlinks(linkModules: boolean,
-                                                         assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean): Promise<void> {
+export async function fixMissingDependenciesWithSymlinks(
+  linkModules: boolean,
+  assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
+): Promise<void> {
 
   const {
     modules: localModules,
-    installedDependencies: installedDependencies,
+    installedDependencies,
   } = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
   let symlinkPromises: Array<Promise<void>> = [];
@@ -375,10 +391,12 @@ export async function fixMissingDependenciesWithSymlinks(linkModules: boolean,
 
       // if we are allowed to link local modules, see if one of them satisfies the dependency
       if (linkModules) {
-        fittingInstalledModule = _findLocalModuleAsDependency(dependency,
-                                                              requestedDependencyVersionRange,
-                                                              localModules,
-                                                              assumeLocalModulesSatisfyNonSemverDependencyVersions);
+        fittingInstalledModule = _findLocalModuleAsDependency(
+          dependency,
+          requestedDependencyVersionRange,
+          localModules,
+          assumeLocalModulesSatisfyNonSemverDependencyVersions,
+        );
       }
 
       // if the dependency isn't directly installed, and no local module sastisfies it, see if a matching dependency is installed somewhere else
@@ -399,10 +417,12 @@ export async function fixMissingDependenciesWithSymlinks(linkModules: boolean,
   return <Promise<any>> Promise.all(symlinkPromises);
 }
 
-function _handleInstalledModuleSatisfiesDependency(dependencyName: string,
-                                                   dependencyVersionRange: string,
-                                                   alreadyInstalledDependencies: Array<ModuleInfo>,
-                                                   remainingDependencies: DependencyRequests): void {
+function _handleInstalledModuleSatisfiesDependency(
+  dependencyName: string,
+  dependencyVersionRange: string,
+  alreadyInstalledDependencies: Array<ModuleInfo>,
+  remainingDependencies: DependencyRequests,
+): void {
 
   // check if already installed modules satisfy the dependency
   for (const installedDependency of alreadyInstalledDependencies) {
@@ -431,11 +451,13 @@ function _handleInstalledModuleSatisfiesDependency(dependencyName: string,
   }
 }
 
-function _handleLocalModuleSatisfiesDependency(dependencyName: string,
-                                               dependencyVersionRange: string,
-                                               localModules: Array<ModuleInfo>,
-                                               assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
-                                               remainingDependencies: DependencyRequests): void {
+function _handleLocalModuleSatisfiesDependency(
+  dependencyName: string,
+  dependencyVersionRange: string,
+  localModules: Array<ModuleInfo>,
+  assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
+  remainingDependencies: DependencyRequests,
+): void {
   for (const localModule of localModules) {
     if (dependencyName !== localModule.name) {
       continue;
@@ -453,7 +475,7 @@ function _handleLocalModuleSatisfiesDependency(dependencyName: string,
     }
 
     // a local dependency that satisfies the request was found. Create info and debug logs that inform the user about that.
-    const shortenedLocalLocation: string = `.${localModule.location.substr(cwd.length)}`;
+    const shortenedLocalLocation = `.${localModule.location.substr(cwd.length)}`;
     const requesterLocations: Array<string> = remainingDependencies[dependencyName][dependencyVersionRange];
     const shortenedRequesterLocations: Array<string> = requesterLocations.map((locationOfRequestingModule: string) => {
       return `.${locationOfRequestingModule.substr(cwd.length)}`;
@@ -465,7 +487,7 @@ function _handleLocalModuleSatisfiesDependency(dependencyName: string,
     }
 
     for (const locationOfRequestingModule of remainingDependencies[dependencyName][dependencyVersionRange]) {
-      const shortenedRequesterLocation: string = `.${locationOfRequestingModule.substr(cwd.length)}`;
+      const shortenedRequesterLocation = `.${locationOfRequestingModule.substr(cwd.length)}`;
       // tslint:disable-next-line:max-line-length
       logger.debug(`dependency ${dependencyName}@${dependencyVersionRange} requested by '${shortenedRequesterLocation}' will be satisfied by local version ${localModule.version} in '${path.join(shortenedLocalLocation)}'`);
     }
@@ -474,34 +496,40 @@ function _handleLocalModuleSatisfiesDependency(dependencyName: string,
   }
 }
 
-function removeAlreadySatisfiedDependencies(requestedDependencies: DependencyRequests,
-                                            localModules: Array<ModuleInfo>,
-                                            alreadyInstalledDependencies: Array<ModuleInfo>,
-                                            linkModules: boolean,
-                                            assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean): DependencyRequests {
+function removeAlreadySatisfiedDependencies(
+  requestedDependencies: DependencyRequests,
+  localModules: Array<ModuleInfo>,
+  alreadyInstalledDependencies: Array<ModuleInfo>,
+  linkModules: boolean,
+  assumeLocalModulesSatisfyNonSemverDependencyVersions: boolean,
+): DependencyRequests {
 
   const remainingDependencies: DependencyRequests = {...requestedDependencies};
 
   for (const requestedDependencyName in remainingDependencies) {
     for (const requestedDependencyVersionRange in remainingDependencies[requestedDependencyName]) {
 
-      _handleInstalledModuleSatisfiesDependency(requestedDependencyName,
-                                                requestedDependencyVersionRange,
-                                                alreadyInstalledDependencies,
-                                                remainingDependencies);
+      _handleInstalledModuleSatisfiesDependency(
+        requestedDependencyName,
+        requestedDependencyVersionRange,
+        alreadyInstalledDependencies,
+        remainingDependencies,
+      );
 
       const dependencyIsAlreadySatisfied: boolean = remainingDependencies[requestedDependencyName][requestedDependencyVersionRange] === undefined;
-      const localModulesWontBeLinked: boolean = !linkModules;
+      const localModulesWontBeLinked = !linkModules;
       if (dependencyIsAlreadySatisfied || localModulesWontBeLinked) {
         continue;
       }
 
       // check if local modules that will get linked satisfy the dependency
-      _handleLocalModuleSatisfiesDependency(requestedDependencyName,
-                                            requestedDependencyVersionRange,
-                                            localModules,
-                                            assumeLocalModulesSatisfyNonSemverDependencyVersions,
-                                            remainingDependencies);
+      _handleLocalModuleSatisfiesDependency(
+        requestedDependencyName,
+        requestedDependencyVersionRange,
+        localModules,
+        assumeLocalModulesSatisfyNonSemverDependencyVersions,
+        remainingDependencies,
+      );
     }
 
     const allVersionsOfTheDependencyAreAlreadySatisfied: boolean = Object.keys(remainingDependencies[requestedDependencyName]).length === 0;
