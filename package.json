@@ -53,8 +53,6 @@
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-no-null": "^1.0.2",
     "rimraf": "^2.6.2",
-    "tslint": "^5.9.1",
-    "tslint-eslint-config-5minds": "^1.0.4",
     "typescript": "^3.6.3"
   }
 }

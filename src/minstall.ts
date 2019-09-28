@@ -191,7 +191,6 @@ function printInstallationStatus(startedInstallationCount: number, finishedInsta
     if (finishedInstallations.indexOf(index) >= 0) {
       installationStatus.push(`${index + 1}: ✓`);
     } else {
-      // tslint:disable-next-line:no-multi-spaces
       installationStatus.push(`${index + 1}:  `);
     }
   }
@@ -279,7 +278,6 @@ function parseProcessArguments(): void {
     if (process.argv[i].indexOf('--') !== 0) {
       ModuleTools.setModulesFolder(process.argv[i]);
     } else if (process.argv[i] === '--loglevel') {
-      // tslint:disable-next-line:no-any
       logger.level = process.argv[i + 1];
       i += 1;
     } else if (process.argv[i] === '--no-link') {
@@ -319,7 +317,6 @@ async function run(): Promise<void> {
   const startTime: number = Date.now();
 
   setupLogger();
-  // tslint:disable-next-line:no-any
   logger.level = 'info';
   parseProcessArguments();
 
