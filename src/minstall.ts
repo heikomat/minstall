@@ -4,7 +4,9 @@ import * as os from 'os';
 import * as path from 'path';
 import * as readline from 'readline';
 import * as semver from 'semver';
-import * as logger from 'winston';
+import * as winston from 'winston';
+import {inspect} from 'util';
+import {SPLAT} from 'triple-beam';
 
 import {
   findOptimalDependencyTargetFolder,
@@ -21,6 +23,60 @@ import {ModuleInfo} from './module_info';
 import {ModuleTools} from './moduletools';
 import {SystemTools} from './systools';
 import {UncriticalError} from './uncritical_error';
+
+let logger: winston.Logger;
+const setupLogger = () => {
+  const logLevels = {
+    critical: {level: 0, color: 'red'},
+    error: {level: 1, color: 'magenta'},
+    warn: {level: 2, color: 'yellow'},
+    info: {level: 3, color: 'green'},
+    verbose: {level: 4, color: 'gray'},
+    debug: {level: 5, color: 'blue'},
+    silly: {level: 6, color: 'cyan'},
+  };
+
+  const levels = {};
+  const colors = {};
+  for (const [name, level] of Object.entries(logLevels)) {
+    levels[name] = level.level;
+    colors[name] = level.color;
+  }
+
+  const isPrimitive = (value) => {
+    return value === null || (typeof value !== 'object' && typeof value !== 'function');
+  }
+
+  const formatWithInspect = (value) => {
+    const prefix = isPrimitive(value) ? '' : '\n';
+    const shouldFormat = typeof value !== 'string';
+    return prefix + (shouldFormat ? inspect(value, { depth: null, colors: true }) : value);
+  }
+
+  logger = winston.createLogger({
+    levels: levels,
+    transports: [
+      new winston.transports.Console({
+        stderrLevels: ['warn', 'error', 'critial'],
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.prettyPrint(),
+          winston.format.simple(),
+          winston.format.printf(info => {
+            const msg = formatWithInspect(info.message);
+            const splatArgs = info[SPLAT] || [];
+            const rest = splatArgs.map(data => formatWithInspect(data)).join(' ');
+
+            return `${info.timestamp} - ${info.level}: ${msg} ${rest}`;
+          })
+        ),
+        handleExceptions: true,
+      })
+    ],
+  });
+  winston.add(logger);
+}
+
 
 const cwd: string = process.cwd();
 
@@ -124,39 +180,6 @@ async function checkStartConditions(): Promise<void> {
   if (!localPackage.dependencies.minstall) {
     throw new UncriticalError('minstall started from outside the project-root. aborting.');
   }
-}
-
-function setupLogger(): void {
-  logger.remove(logger.transports.Console);
-  logger.add(logger.transports.Console, {
-    stderrLevels: ['warn', 'error', 'critial'],
-    colorize: true,
-    handleExceptions: true,
-    humanReadableUnhandledException: true,
-    timestamp: false,
-    prettyPrint: true,
-  });
-
-  const logLevels: {[loglevel: string]: {level: number; color: string}} = {
-    critical: {level: 0, color: 'red'},
-    error: {level: 1, color: 'magenta'},
-    warn: {level: 2, color: 'yellow'},
-    info: {level: 3, color: 'green'},
-    verbose: {level: 4, color: 'gray'},
-    debug: {level: 5, color: 'blue'},
-    silly: {level: 6, color: 'cyan'},
-  };
-  const levels: logger.AbstractConfigSetLevels = {};
-  const colors: logger.AbstractConfigSetColors = {};
-
-  Object.keys(logLevels)
-    .forEach((name: string) => {
-      levels[name] = logLevels[name].level;
-      colors[name] = logLevels[name].color;
-    });
-
-  logger.setLevels(levels);
-  logger.addColors(colors);
 }
 
 function printInstallationStatus(startedInstallationCount: number, finishedInstallations: Array<number>): void {
