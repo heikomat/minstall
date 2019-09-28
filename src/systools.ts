@@ -3,13 +3,13 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as logger from 'winston';
 
-export class SystemTools {
+export const SystemTools = {
 
-  public static logVerbose(): boolean {
+  logVerbose: (): boolean => {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
-  }
+  },
 
-  public static delete(location: string): Promise<void> {
+  delete: (location: string): Promise<void> => {
     logger.verbose('delete', location);
 
     return new Promise((resolve: Function, reject: Function): void => {
@@ -21,21 +21,21 @@ export class SystemTools {
 
           // even if the delete-command failed (e.g. when there was nothing to delete),
           // the script should continue, thus there is no reject
-          // tslint:disable-next-line:no-console
+          // eslint-disable-next-line no-console
           console.log(`error deleting '${location}'`, error);
         }
 
         return resolve();
       });
     });
-  }
+  },
 
-  public static link(modulePath: string, targetPath: string): Promise<void> {
+  link: (modulePath: string, targetPath: string): Promise<void> => {
     logger.verbose('link', modulePath, '->', targetPath);
 
     return new Promise((resolve: Function, reject: Function): void => {
       // the typings for fs-extra are wrong. They don't allow 'junction', even though 'junction' is the correct value for symlinks on windows
-      // tslint:disable-next-line:no-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fs.ensureSymlink(modulePath, targetPath, <any> 'junction', (error: Error) => {
 
         // even if the link-command failed (e.g. when the link already exists),
@@ -43,9 +43,9 @@ export class SystemTools {
         return resolve();
       });
     });
-  }
+  },
 
-  public static runCommand(command: string, silent = false): Promise<string> {
+  runCommand: (command: string, silent = false): Promise<string> => {
     logger.verbose('running command', command);
 
     return new Promise<string>((resolve: Function, reject: Function): void => {
@@ -63,7 +63,7 @@ export class SystemTools {
             return reject(new Error(''));
           }
 
-          // tslint:disable-next-line:max-line-length
+          // eslint-disable-next-line max-len
           return reject(new Error(`\nA command from within minstall produced a warning or an error:\ncommand: ${command}\nlog-output:\n${stdout}\n\nmessage:\n${stderr}\n`));
         }
 
@@ -74,9 +74,9 @@ export class SystemTools {
         return resolve(stdout);
       });
     });
-  }
+  },
 
-  public static async getFolderNames(folderPath: string): Promise<Array<string>> {
+  getFolderNames: async (folderPath: string): Promise<Array<string>> => {
     const folderNames: Array<string> = await new Promise<Array<string>>((resolve: Function, reject: Function): void => {
 
       fs.readdir(folderPath, (error: NodeJS.ErrnoException, files: Array<string>) => {
@@ -97,9 +97,9 @@ export class SystemTools {
     return folderNames.filter((folderName: string) => {
       return folderName !== null;
     });
-  }
+  },
 
-  public static verifyFolderName(folderPath: string, folderName: string): Promise<string> {
+  verifyFolderName: (folderPath: string, folderName: string): Promise<string> => {
     if (folderName.indexOf('.') === 0) {
       return Promise.resolve(null);
     }
@@ -123,9 +123,9 @@ export class SystemTools {
         return resolve(folderName);
       });
     });
-  }
+  },
 
-  public static isSymlink(location: string): Promise<boolean> {
+  isSymlink: (location: string): Promise<boolean> => {
     return new Promise((resolve: Function, reject: Function): void => {
       fs.lstat(location, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
         if (error) {
@@ -135,28 +135,24 @@ export class SystemTools {
         return resolve(stats.isSymbolicLink());
       });
     });
-  }
+  },
 
-  public static getRuntime(start: number): string {
-    // tslint:disable-next-line:no-magic-numbers
+  getRuntime: (start: number): string => {
     let runSeconds: number = Math.round((Date.now() - start) / 1000);
 
-    // tslint:disable-next-line:no-magic-numbers
     const runMinutes: number = Math.floor(runSeconds / 60);
 
-    // tslint:disable-next-line:no-magic-numbers
     runSeconds %= 60;
 
     if (runMinutes === 0) {
       return `${runSeconds} seconds`;
     }
 
-    // tslint:disable-next-line:no-magic-numbers
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     if (runSeconds < 10) {
       return `${runMinutes}:0${runSeconds} minutes`;
     }
 
     return `${runMinutes}:${runSeconds} minutes`;
-  }
-
-}
+  },
+};

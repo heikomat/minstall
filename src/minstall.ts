@@ -25,7 +25,7 @@ import {SystemTools} from './systools';
 import {UncriticalError} from './uncritical_error';
 
 let logger: winston.Logger;
-const setupLogger = () => {
+const setupLogger = (): void => {
   const logLevels = {
     critical: {level: 0, color: 'red'},
     error: {level: 1, color: 'magenta'},
@@ -43,11 +43,11 @@ const setupLogger = () => {
     colors[name] = level.color;
   }
 
-  const isPrimitive = (value) => {
+  const isPrimitive = (value): boolean => {
     return value === null || (typeof value !== 'object' && typeof value !== 'function');
   };
 
-  const formatWithInspect = (value) => {
+  const formatWithInspect = (value): string => {
     const prefix = isPrimitive(value) ? '' : '\n';
     const shouldFormat = typeof value !== 'string';
     return prefix + (shouldFormat ? inspect(value, {depth: null, colors: true}) : value);
@@ -100,7 +100,7 @@ function logVerbose(): boolean {
 
 function logIfInRoot(message: string): void {
   if (message && message.length > 0 && (isInProjectRoot || logVerbose())) {
-    // tslint:disable-next-line:no-console
+    // eslint-disable-next-line no-console
     console.log(message);
   }
 }
@@ -112,6 +112,7 @@ function getLocalPackageInfo(): Promise<ModuleInfo> {
 async function _checkNpmVersion(): Promise<void> {
   npmVersion = await SystemTools.runCommand('npm --version', true);
   if (semver.satisfies(npmVersion, '5.7.0')) {
+    // eslint-disable-next-line max-len
     logger.error('You\'re using npm 5.7.0. Do not use this version, it has a critical bug that is fixed in 5.7.1. See npm-issue #19883 for more info');
     process.exit(1);
   }
@@ -186,7 +187,7 @@ function printInstallationStatus(startedInstallationCount: number, finishedInsta
   readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
   const installationStatus: Array<string> = [];
-  for (let index = 0; index < startedInstallationCount; index++) {
+  for (let index = 0; index < startedInstallationCount; index += 1) {
     if (finishedInstallations.indexOf(index) >= 0) {
       installationStatus.push(`${index + 1}: ✓`);
     } else {
@@ -211,14 +212,15 @@ async function installModuleDependencies(): Promise<void> {
 
   let startedInstallationCount = 0;
   const finishedInstallations: Array<number> = [];
-  for (const targetFolder in targets) {
+  for (const [targetFolder, requestedDependencies] of Object.entries(targets)) {
 
     const shortTargetFolder = `.${targetFolder.substr(cwd.length)}`;
     const installationIndex: number = startedInstallationCount;
-    startedInstallationCount++;
+    startedInstallationCount += 1;
 
-    logIfInRoot(`${installationIndex + 1}. installing ${targets[targetFolder].length} dependencies to ${shortTargetFolder}`);
-    installPromises.push(ModuleTools.installPackets(targetFolder, targets[targetFolder])
+    logIfInRoot(`${installationIndex + 1}. installing ${requestedDependencies.length} dependencies to ${shortTargetFolder}`);
+    installPromises.push(ModuleTools.installPackets(targetFolder, requestedDependencies)
+      // eslint-disable-next-line no-loop-func
       .then(() => {
         finishedInstallations.push(installationIndex);
         printInstallationStatus(startedInstallationCount, finishedInstallations);
@@ -259,15 +261,13 @@ async function runPostinstalls(): Promise<void> {
     postinstallPromises.push(SystemTools.runCommand(`cd ${module.fullModulePath}${commandConcatSymbol} ${module.postinstallCommand}`));
   }
 
-  // tslint:disable-next-line:no-any
-  return <Promise<any>> Promise.all(postinstallPromises);
+  await Promise.all(postinstallPromises);
 }
 
 async function deleteLinkedLocalModules(): Promise<void> {
   const moduleInfos: ModulesAndDependenciesInfo = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
-  // tslint:disable-next-line:no-any
-  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo: ModuleInfo) => {
+  await Promise.all(moduleInfos.modules.map((moduleInfo: ModuleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
     return SystemTools.delete(path.join(cwd, 'node_modules', moduleInfo.folderName));
@@ -275,13 +275,13 @@ async function deleteLinkedLocalModules(): Promise<void> {
 }
 
 function parseProcessArguments(): void {
-  for (let i = 2; i < process.argv.length; i++) {
+  for (let i = 2; i < process.argv.length; i += 1) {
     if (process.argv[i].indexOf('--') !== 0) {
       ModuleTools.setModulesFolder(process.argv[i]);
     } else if (process.argv[i] === '--loglevel') {
       // tslint:disable-next-line:no-any
-      (<any> logger).level = process.argv[i + 1];
-      i++;
+      logger.level = process.argv[i + 1];
+      i += 1;
     } else if (process.argv[i] === '--no-link') {
       linkModules = false;
     } else if (process.argv[i] === '--cleanup') {
@@ -300,7 +300,7 @@ function parseProcessArguments(): void {
         identifier: `${noHoistEntry[0]}@${noHoistEntry[1]}`,
       });
 
-      i++;
+      i += 1;
     }
   }
 }
@@ -308,8 +308,7 @@ function parseProcessArguments(): void {
 async function cleanupDependencies(): Promise<void> {
   const moduleInfos: ModulesAndDependenciesInfo = await ModuleTools.getAllModulesAndInstalledDependenciesDeep();
 
-  // tslint:disable-next-line:no-any
-  return <Promise<any>> Promise.all(moduleInfos.modules.map((moduleInfo: ModuleInfo) => {
+  await Promise.all(moduleInfos.modules.map((moduleInfo: ModuleInfo) => {
     // local modules should be linked using the folder-names they should have,
     // no matter what folder-name they actually have, therefore don't use realFolderName here
     return SystemTools.delete(path.join(moduleInfo.fullModulePath, 'node_modules'));
@@ -321,7 +320,7 @@ async function run(): Promise<void> {
 
   setupLogger();
   // tslint:disable-next-line:no-any
-  (<any> logger).level = 'info';
+  logger.level = 'info';
   parseProcessArguments();
 
   logger.silly('process arguments:', process.argv);
@@ -348,7 +347,8 @@ async function run(): Promise<void> {
   }
 
   if (linkOnly) {
-    return fixMissingDependenciesWithSymlinks(linkModules, assumeLocalModulesSatisfyNonSemverDependencyVersions);
+    await fixMissingDependenciesWithSymlinks(linkModules, assumeLocalModulesSatisfyNonSemverDependencyVersions);
+    return;
   }
 
   try {

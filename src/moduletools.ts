@@ -1,37 +1,36 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as semver from 'semver';
 import * as logger from 'winston';
 import {DependencyRequestInfo, ModulesAndDependenciesInfo} from './interfaces';
 import {ModuleInfo} from './module_info';
 import {SystemTools} from './systools';
 
-export class ModuleTools {
+export const ModuleTools = {
 
-  public static modulesFolder = 'modules';
-  public static nullTarget = '/dev/null';
-  public static commandConcatSymbol = ';';
+  modulesFolder: 'modules',
+  nullTarget: '/dev/null',
+  commandConcatSymbol: ';',
 
-  public static setModulesFolder(modulesFolder: string): void {
+  setModulesFolder: (modulesFolder: string): void => {
     this.modulesFolder = modulesFolder;
-  }
+  },
 
-  public static setNullTarget(nullTarget: string): void {
+  setNullTarget: (nullTarget: string): void => {
     this.nullTarget = nullTarget;
-  }
+  },
 
-  public static setCommandConcatSymbol(commandConcatSymbol: string): void {
+  setCommandConcatSymbol: (commandConcatSymbol: string): void => {
     this.commandConcatSymbol = commandConcatSymbol;
-  }
+  },
 
-  public static logVerbose(): boolean {
+  logVerbose: (): boolean => {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
-  }
+  },
 
-  public static async getAllModulesAndInstalledDependenciesDeep(
+  getAllModulesAndInstalledDependenciesDeep: async (
     location: string = process.cwd(),
     folderName: string = this.modulesFolder,
-  ): Promise<ModulesAndDependenciesInfo> {
+  ): Promise<ModulesAndDependenciesInfo> => {
     const result: ModulesAndDependenciesInfo = {
       modules: [],
       installedDependencies: [],
@@ -70,9 +69,9 @@ export class ModuleTools {
     }
 
     return result;
-  }
+  },
 
-  public static async getModules(location: string, rootFolder: string = this.modulesFolder): Promise<Array<ModuleInfo>> {
+  getModules: async (location: string, rootFolder: string = this.modulesFolder): Promise<Array<ModuleInfo>> => {
     const result: Array<ModuleInfo> = [];
 
     const modulesPath: string = path.join(location, rootFolder);
@@ -104,19 +103,11 @@ export class ModuleTools {
     }
 
     return result.concat([].concat(...scopedModules));
-  }
+  },
 
-  public static verifyModule(location: string, name: string): Promise<string> {
+  verifyModule: (location: string, name: string): Promise<string> => {
     return new Promise((resolve: Function, reject: Function): void => {
-
-      // the constant is called fs.F_OK in node < 6, and fs.constants.F_OK in node >= 6
-      // tslint:disable-next-line:no-any
-      let mode: number = (<any> fs).F_OK;
-      if (fs.constants) {
-        mode = fs.constants.F_OK;
-      }
-
-      fs.access(path.join(location, name, 'package.json'), mode, (error: Error) => {
+      fs.access(path.join(location, name, 'package.json'), fs.constants.F_OK, (error: Error) => {
         if (error) {
           // folder has no package.json, thus it is not a module
           return resolve(null);
@@ -125,9 +116,9 @@ export class ModuleTools {
         return resolve(name);
       });
     });
-  }
+  },
 
-  public static async installPackets(targetFolder: string, packets: Array<DependencyRequestInfo>): Promise<void> {
+  installPackets: async (targetFolder: string, packets: Array<DependencyRequestInfo>): Promise<void> => {
 
     if (packets.length === 0) {
       return Promise.resolve();
@@ -145,7 +136,7 @@ export class ModuleTools {
     }
 
     try {
-      // tslint:disable-next-line:max-line-length
+      // eslint-disable-next-line max-len
       await SystemTools.runCommand(`cd ${targetFolder}${this.commandConcatSymbol} npm install --no-save --no-package-lock --loglevel ${npmiLoglevel} ${identifier.join(' ')}${nullTarget}`);
     } catch (error) {
       // npm pushes all its info- and wanr-logs to stderr. If we have a debug
@@ -161,6 +152,6 @@ export class ModuleTools {
       // to stderr, so we reroute it to stdout instead of throwing an error
       process.stdout.write(error.message);
     }
-  }
-
-}
+    return Promise.resolve();
+  },
+};

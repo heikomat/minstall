@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/member-naming */
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -134,14 +135,14 @@ export class ModuleInfo {
         const dependencies: DependencyEntries = packageInfo.dependencies || {};
         if ((!process.env.NODE_ENV || process.env.NODE_ENV !== 'production')
             && packageInfo.devDependencies) {
-          for (const dependency in packageInfo.devDependencies) {
-            dependencies[dependency] = packageInfo.devDependencies[dependency];
+          for (const [dependency, version] of Object.entries(packageInfo.devDependencies)) {
+            dependencies[dependency] = version;
           }
         }
 
         if (packageInfo.peerDependencies) {
-          for (const dependency in packageInfo.peerDependencies) {
-            dependencies[dependency] = packageInfo.peerDependencies[dependency];
+          for (const [dependency, version] of Object.entries(packageInfo.peerDependencies)) {
+            dependencies[dependency] = version;
           }
         }
 
