@@ -1,12 +1,49 @@
-'use strict';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const fs = require('fs');
-const path = require('path');
-const Promise = require('bluebird');
+export interface DependencyEntries {
+  [dependency: string]: string;
+}
 
-class ModuleInfo {
+export interface BinEntry {
+  [dependency: string]: string;
+}
 
-  constructor(location, folderName, name, version, dependencies, postinstallCommand, bin) {
+export interface PackageJson {
+  name: string;
+  version: string;
+  dependencies?: DependencyEntries;
+  devDependencies?: DependencyEntries;
+  peerDependencies?: DependencyEntries;
+  scripts: {
+    [scriptName: string]: string;
+  };
+  bin: string | BinEntry;
+}
+
+export class ModuleInfo {
+
+  private _location: string;
+  private _realFolderName: string;
+  private _folderName: string;
+  private _name: string;
+  private _version: string;
+  private _dependencies: DependencyEntries;
+  private _postinstallCommand: string;
+  private _isScoped: boolean = false;
+  private _fullModulePath: string;
+  private _bin: {[name: string]: string};
+
+  constructor(
+    location: string,
+    folderName: string,
+    name: string,
+    version: string,
+    dependencies: DependencyEntries,
+    postinstallCommand: string,
+    bin: string | BinEntry,
+  ) {
+
     this._location = location;
     this._realFolderName = folderName;
     this._folderName = name;
@@ -16,89 +53,85 @@ class ModuleInfo {
     this._postinstallCommand = postinstallCommand;
     this._isScoped = false;
     this._fullModulePath = path.join(this.location, this.realFolderName);
-    this._bin = bin;
-    if (this._bin === undefined || this._bin === null) {
-      this._bin = {};
-    }
 
-    if (typeof this._bin === 'string') {
+    if (bin === undefined || bin === null) {
+      this._bin = {};
+    } else if (typeof bin === 'string') {
       this._bin = {
         [name]: bin,
       };
+    } else {
+      this._bin = bin;
     }
 
     if (name.charAt(0) === '@') {
-      const moduleNameParts = name.split('/');
+      const moduleNameParts: Array<string> = name.split('/');
       this._folderName = path.join(moduleNameParts[0], moduleNameParts[1]);
       this._isScoped = true;
     }
   }
 
-  get location() {
+  public get location(): string {
     return this._location;
   }
 
-  get fullModulePath() {
+  public get fullModulePath(): string {
     return this._fullModulePath;
   }
 
   // gets the folder-name the module should have according to it's module-name
-  get folderName() {
+  public get folderName(): string {
     return this._folderName;
   }
 
   // get's the folder-name the module actually has on the disk.
   // This should only differ from folderName for local modules,
   // never for modules within node_modules
-  get realFolderName() {
+  public get realFolderName(): string {
     return this._realFolderName;
   }
 
-  get name() {
+  public get name(): string {
     return this._name;
   }
 
-  get version() {
+  public get version(): string {
     return this._version;
   }
 
-  get dependencies() {
+  public get dependencies(): DependencyEntries {
     return this._dependencies;
   }
 
-  get postinstallCommand() {
+  public get postinstallCommand(): string {
     return this._postinstallCommand;
   }
 
-  get isScoped() {
+  public get isScoped(): boolean {
     return this._isScoped;
   }
 
-  get bin() {
+  public get bin(): BinEntry {
     return this._bin;
   }
 
-  static loadFromFolder(rootFolder, moduleFolder) {
-    return new Promise((resolve, reject) => {
-      if (rootFolder === null || rootFolder === undefined) {
-        rootFolder = this.modulesFolder;
-      }
+  public static loadFromFolder(rootFolder: string, moduleFolder: string): Promise<ModuleInfo> {
+    return new Promise((resolve: Function, reject: Function): void => {
+      const packagePath: string = path.join(rootFolder, moduleFolder, 'package.json');
 
-      const packagePath = path.join(rootFolder, moduleFolder, 'package.json');
-
-      fs.readFile(packagePath, 'utf8', (error, data) => {
+      fs.readFile(packagePath, 'utf8', (error: Error, data: string) => {
         if (error) {
           return reject(error);
         }
 
-        let packageInfo;
+        let packageInfo: PackageJson;
         try {
           packageInfo = JSON.parse(data);
         } catch (parseError) {
           throw new Error(`couldn't parse package.json at '${packagePath}': ${parseError.message}`);
         }
 
-        const dependencies = packageInfo.dependencies || [];
+        const dependencies: DependencyEntries = packageInfo.dependencies || {};
         if ((!process.env.NODE_ENV || process.env.NODE_ENV !== 'production')
             && packageInfo.devDependencies) {
           for (const dependency in packageInfo.devDependencies) {
@@ -112,7 +145,7 @@ class ModuleInfo {
           }
         }
 
-        let postinstallCommand = null;
+        let postinstallCommand: string = null;
         if (packageInfo.scripts && packageInfo.scripts.postinstall) {
           postinstallCommand = packageInfo.scripts.postinstall;
         }
@@ -124,5 +157,3 @@ class ModuleInfo {
   }
 
 }
-
-module.exports = ModuleInfo;

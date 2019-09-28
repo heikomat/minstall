@@ -1,9 +1,12 @@
 {
   "name": "minstall",
-  "version": "3.3.0",
+  "version": "3.3.1-pre3",
   "description": "local module installer",
-  "main": "lib/minstall.js",
-  "bin": "lib/minstall.js",
+  "main": "build/minstall.js",
+  "bin": "build/minstall.js",
+  "scripts": {
+    "build": "rimraf build && tsc"
+  },
   "keywords": [
     "install",
     "minstall",
@@ -33,7 +36,6 @@
     "url": "https://github.com/heikomat/minstall.git"
   },
   "dependencies": {
-    "bluebird": "^3.4.6",
     "fs-extra": "^2.1.2",
     "minimatch": "^3.0.4",
     "semver": "^5.3.0",
@@ -41,8 +43,11 @@
     "winston": "^2.3.1"
   },
   "devDependencies": {
-    "eslint": "^3.9.1",
-    "eslint-config-5minds": "0.0.5",
-    "eslint-plugin-import": "^1.16.0"
+    "@types/node": "^9.4.7",
+    "@types/winston": "^2.3.8",
+    "rimraf": "^2.6.2",
+    "tslint": "^5.9.1",
+    "tslint-eslint-config-5minds": "^1.0.4",
+    "typescript": "^2.7.2"
   }
 }
