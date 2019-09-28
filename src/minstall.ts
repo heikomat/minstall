@@ -45,13 +45,13 @@ const setupLogger = () => {
 
   const isPrimitive = (value) => {
     return value === null || (typeof value !== 'object' && typeof value !== 'function');
-  }
+  };
 
   const formatWithInspect = (value) => {
     const prefix = isPrimitive(value) ? '' : '\n';
     const shouldFormat = typeof value !== 'string';
-    return prefix + (shouldFormat ? inspect(value, { depth: null, colors: true }) : value);
-  }
+    return prefix + (shouldFormat ? inspect(value, {depth: null, colors: true}) : value);
+  };
 
   logger = winston.createLogger({
     levels: levels,
@@ -62,21 +62,21 @@ const setupLogger = () => {
           winston.format.colorize(),
           winston.format.prettyPrint(),
           winston.format.simple(),
-          winston.format.printf(info => {
+          winston.format.printf((info) => {
             const msg = formatWithInspect(info.message);
             const splatArgs = info[SPLAT] || [];
-            const rest = splatArgs.map(data => formatWithInspect(data)).join(' ');
+            const rest = splatArgs.map((data) => { return formatWithInspect(data); })
+              .join(' ');
 
             return `${info.timestamp} - ${info.level}: ${msg} ${rest}`;
-          })
+          }),
         ),
         handleExceptions: true,
-      })
+      }),
     ],
   });
   winston.add(logger);
-}
-
+};
 
 const cwd: string = process.cwd();
 
