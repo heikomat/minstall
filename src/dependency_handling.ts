@@ -366,7 +366,7 @@ function removeAlreadySatisfiedDependencies(
   const remainingDependencies: DependencyRequests = {...requestedDependencies};
 
   for (const [requestedDependencyName, requestedVersionRanges] of Object.entries(remainingDependencies)) {
-    for (const [requestedDependencyVersionRange, requestedBy] of Object.entries(requestedVersionRanges)) {
+    for (const requestedDependencyVersionRange of Object.keys(requestedVersionRanges)) {
 
       _handleInstalledModuleSatisfiesDependency(
         requestedDependencyName,
@@ -375,7 +375,7 @@ function removeAlreadySatisfiedDependencies(
         remainingDependencies,
       );
 
-      const dependencyIsAlreadySatisfied: boolean = requestedBy === undefined;
+      const dependencyIsAlreadySatisfied: boolean = requestedVersionRanges[requestedDependencyVersionRange] === undefined;
       const localModulesWontBeLinked = !linkModules;
       if (dependencyIsAlreadySatisfied || localModulesWontBeLinked) {
         continue;
