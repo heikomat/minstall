@@ -1,3 +1,7 @@
+# 4.0.1
+### Bugfixes
+Fixed a bug where dependencies were not recognized as already satisfied
+
 # 4.0.0
 This is mainly a maintenance update. The API is unchanged, but i still mark it
 as a major update, because support for node 4 (and probably node 6) is dropped
