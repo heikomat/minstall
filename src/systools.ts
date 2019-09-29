@@ -5,11 +5,11 @@ import * as logger from 'winston';
 
 export const SystemTools = {
 
-  logVerbose: (): boolean => {
+  logVerbose: function logVerbose(): boolean {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   },
 
-  delete: (location: string): Promise<void> => {
+  delete: function _delete(location: string): Promise<void> {
     logger.verbose('delete', location);
 
     return new Promise((resolve: Function, reject: Function): void => {
@@ -30,7 +30,7 @@ export const SystemTools = {
     });
   },
 
-  link: (modulePath: string, targetPath: string): Promise<void> => {
+  link: function link(modulePath: string, targetPath: string): Promise<void> {
     logger.verbose('link', modulePath, '->', targetPath);
 
     return new Promise((resolve: Function, reject: Function): void => {
@@ -45,7 +45,7 @@ export const SystemTools = {
     });
   },
 
-  runCommand: (command: string, silent = false): Promise<string> => {
+  runCommand: function runCommand(command: string, silent = false): Promise<string> {
     logger.verbose('running command', command);
 
     return new Promise<string>((resolve: Function, reject: Function): void => {
@@ -76,7 +76,7 @@ export const SystemTools = {
     });
   },
 
-  getFolderNames: async (folderPath: string): Promise<Array<string>> => {
+  getFolderNames: async function getFolderNames(folderPath: string): Promise<Array<string>> {
     const folderNames: Array<string> = await new Promise<Array<string>>((resolve: Function, reject: Function): void => {
 
       fs.readdir(folderPath, (error: NodeJS.ErrnoException, files: Array<string>) => {
@@ -99,7 +99,7 @@ export const SystemTools = {
     });
   },
 
-  verifyFolderName: (folderPath: string, folderName: string): Promise<string> => {
+  verifyFolderName: function verifyFolderName(folderPath: string, folderName: string): Promise<string> {
     if (folderName.indexOf('.') === 0) {
       return Promise.resolve(null);
     }
@@ -125,7 +125,7 @@ export const SystemTools = {
     });
   },
 
-  isSymlink: (location: string): Promise<boolean> => {
+  isSymlink: function isSymlink(location: string): Promise<boolean> {
     return new Promise((resolve: Function, reject: Function): void => {
       fs.lstat(location, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
         if (error) {
@@ -137,7 +137,7 @@ export const SystemTools = {
     });
   },
 
-  getRuntime: (start: number): string => {
+  getRuntime: function getRuntime(start: number): string {
     let runSeconds: number = Math.round((Date.now() - start) / 1000);
 
     const runMinutes: number = Math.floor(runSeconds / 60);

@@ -11,26 +11,26 @@ export const ModuleTools = {
   nullTarget: '/dev/null',
   commandConcatSymbol: ';',
 
-  setModulesFolder: (modulesFolder: string): void => {
+  setModulesFolder: function setModulesFolder(modulesFolder: string): void {
     this.modulesFolder = modulesFolder;
   },
 
-  setNullTarget: (nullTarget: string): void => {
+  setNullTarget: function setNullTarget(nullTarget: string): void {
     this.nullTarget = nullTarget;
   },
 
-  setCommandConcatSymbol: (commandConcatSymbol: string): void => {
+  setCommandConcatSymbol: function setCommandConcatSymbol(commandConcatSymbol: string): void {
     this.commandConcatSymbol = commandConcatSymbol;
   },
 
-  logVerbose: (): boolean => {
+  logVerbose: function logVerbose(): boolean {
     return ['verbose', 'debug', 'silly'].indexOf(logger.level) >= 0;
   },
 
-  getAllModulesAndInstalledDependenciesDeep: async (
+  getAllModulesAndInstalledDependenciesDeep: async function getAllModulesAndInstalledDependenciesDeep(
     location: string = process.cwd(),
     folderName: string = this.modulesFolder,
-  ): Promise<ModulesAndDependenciesInfo> => {
+  ): Promise<ModulesAndDependenciesInfo> {
     const result: ModulesAndDependenciesInfo = {
       modules: [],
       installedDependencies: [],
@@ -71,7 +71,7 @@ export const ModuleTools = {
     return result;
   },
 
-  getModules: async (location: string, rootFolder: string = this.modulesFolder): Promise<Array<ModuleInfo>> => {
+  getModules: async function getModules(location: string, rootFolder: string = this.modulesFolder): Promise<Array<ModuleInfo>> {
     const result: Array<ModuleInfo> = [];
 
     const modulesPath: string = path.join(location, rootFolder);
@@ -105,7 +105,7 @@ export const ModuleTools = {
     return result.concat([].concat(...scopedModules));
   },
 
-  verifyModule: (location: string, name: string): Promise<string> => {
+  verifyModule: function verifyModule(location: string, name: string): Promise<string> {
     return new Promise((resolve: Function, reject: Function): void => {
       fs.access(path.join(location, name, 'package.json'), fs.constants.F_OK, (error: Error) => {
         if (error) {
@@ -118,7 +118,7 @@ export const ModuleTools = {
     });
   },
 
-  installPackets: async (targetFolder: string, packets: Array<DependencyRequestInfo>): Promise<void> => {
+  installPackets: async function installPackets(targetFolder: string, packets: Array<DependencyRequestInfo>): Promise<void> {
 
     if (packets.length === 0) {
       return Promise.resolve();
