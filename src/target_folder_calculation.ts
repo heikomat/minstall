@@ -8,10 +8,7 @@ import * as logger from 'winston';
 import {
   DependencyInfo,
   DependencyRequestInfo,
-  DependencyRequests,
   DependencyTargetFolder,
-  ModulesAndDependenciesInfo,
-  SemverRange,
 } from './interfaces';
 import {ModuleInfo} from './module_info';
 
@@ -21,6 +18,7 @@ function _dontHoistDependency(optimalDependencyTargetFolder: DependencyTargetFol
   for (const installationTarget of requestedDependency.requestedBy) {
 
     if (!optimalDependencyTargetFolder[installationTarget]) {
+      // eslint-disable-next-line no-param-reassign
       optimalDependencyTargetFolder[installationTarget] = [];
     }
 
@@ -39,9 +37,10 @@ function _dontHoistInvalidSemverRequests(requestedDependency: DependencyRequestI
   // install the dependency to the folder it is requested in.
   const requestedByString: string = requestedDependency.requestedBy.map((requestedByPath: string) => {
     return `.${requestedByPath.substr(cwd.length)}`;
-  }).join('\n  ');
+  })
+    .join('\n  ');
 
-  // tslint:disable-next-line:max-line-length
+  // eslint-disable-next-line max-len
   logger.warn(`${requestedDependency.requestedBy.length} modules request ${requestedDependency.identifier}. This dependency won't get optimized (hoisted), because '${requestedDependency.versionRange}' is not a vaild semver-range. If ${requestedDependency.name} is one of your local modules, you can try the --trust-local-modules flag. These modules all get their own copy of that Dependency:\n  ${requestedByString}`);
   _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency);
 
@@ -66,7 +65,7 @@ function _findMatchingNoHoistEntry(requestedDependency: DependencyRequestInfo, n
     }
 
     try {
-      const intersection: SemverRange = intersect(requestedDependency.versionRange, noHoistEntry.versionRange);
+      intersect(requestedDependency.versionRange, noHoistEntry.versionRange);
     } catch (error) {
       // the versions didn't intersect
       return false;
@@ -77,9 +76,11 @@ function _findMatchingNoHoistEntry(requestedDependency: DependencyRequestInfo, n
   });
 }
 
-function _dontHoistExcludedDependencies(requestedDependency: DependencyRequestInfo,
-                                        optimalDependencyTargetFolder: DependencyTargetFolder,
-                                        noHoistList: Array<DependencyInfo>): boolean {
+function _dontHoistExcludedDependencies(
+  requestedDependency: DependencyRequestInfo,
+  optimalDependencyTargetFolder: DependencyTargetFolder,
+  noHoistList: Array<DependencyInfo>,
+): boolean {
   const matchingNoHoistEntry: DependencyInfo = _findMatchingNoHoistEntry(requestedDependency, noHoistList);
   if (matchingNoHoistEntry === undefined) {
     return false;
@@ -88,26 +89,28 @@ function _dontHoistExcludedDependencies(requestedDependency: DependencyRequestIn
   // The requested dependency is flagged as "should not get hoisted", so we don't hoist it.
   const requestedByString: string = requestedDependency.requestedBy.map((requestedByPath: string) => {
     return `.${requestedByPath.substr(cwd.length)}`;
-  }).join('\n  ');
+  })
+    .join('\n  ');
 
-  // tslint:disable-next-line:max-line-length
+  // eslint-disable-next-line max-len
   logger.info(`${requestedDependency.identifier} instersects with no-hoist-flag ${matchingNoHoistEntry.identifier}, so it won't get hoisted for the following modules:\n  ${requestedByString}`);
   _dontHoistDependency(optimalDependencyTargetFolder, requestedDependency);
 
   return true;
 }
 
-function _handleIfDependencyIsAlreadyOnInstallList(currentPath: string,
-                                                   requestedDependency: DependencyRequestInfo,
-                                                   optimalDependencyTargetFolder: DependencyTargetFolder): boolean {
-  for (const modulePath in optimalDependencyTargetFolder) {
-    const modulesToBeInstalled: Array<DependencyRequestInfo> = optimalDependencyTargetFolder[modulePath];
+function _handleIfDependencyIsAlreadyOnInstallList(
+  currentPath: string,
+  requestedDependency: DependencyRequestInfo,
+  optimalDependencyTargetFolder: DependencyTargetFolder,
+): boolean {
+  for (const [modulePath, modulesToBeInstalled] of Object.entries(optimalDependencyTargetFolder)) {
     const matchingModule: DependencyRequestInfo = modulesToBeInstalled.find((moduleToBeInstalled: DependencyRequestInfo) => {
       return moduleToBeInstalled.identifier === requestedDependency.identifier;
     });
 
     if (matchingModule) {
-      // tslint:disable-next-line:max-line-length
+      // eslint-disable-next-line max-len
       logger.debug(`no need to install ${requestedDependency.identifier} to ${currentPath}. a matching version will already be installed to ${modulePath}`);
 
       return true;
@@ -117,14 +120,16 @@ function _handleIfDependencyIsAlreadyOnInstallList(currentPath: string,
   return false;
 }
 
-function _handleIfConflictingDependencyIsAlreadyInstalled(currentPath: string,
-                                                          requestedDependency: DependencyRequestInfo,
-                                                          alreadyInstalledDependencies: Array<ModuleInfo>): boolean {
+function _handleIfConflictingDependencyIsAlreadyInstalled(
+  currentPath: string,
+  requestedDependency: DependencyRequestInfo,
+  alreadyInstalledDependencies: Array<ModuleInfo>,
+): boolean {
 
   for (const installedDependency of alreadyInstalledDependencies) {
-    if (installedDependency.name === requestedDependency.name &&
-        installedDependency.location === path.join(currentPath, 'node_modules')) {
-      // tslint:disable-next-line:max-line-length
+    if (installedDependency.name === requestedDependency.name
+        && installedDependency.location === path.join(currentPath, 'node_modules')) {
+      // eslint-disable-next-line max-len
       logger.debug(`${requestedDependency.identifier} can't be installed to ${currentPath}. it conflicts with the already installed ${installedDependency.name}@"${installedDependency.version}"`);
 
       return true;
@@ -134,9 +139,11 @@ function _handleIfConflictingDependencyIsAlreadyInstalled(currentPath: string,
   return false;
 }
 
-function _handleIfConflictingDependencyWillBeInstalled(currentPath: string,
-                                                       requestedDependency: DependencyRequestInfo,
-                                                       optimalDependencyTargetFolder: DependencyTargetFolder): boolean {
+function _handleIfConflictingDependencyWillBeInstalled(
+  currentPath: string,
+  requestedDependency: DependencyRequestInfo,
+  optimalDependencyTargetFolder: DependencyTargetFolder,
+): boolean {
 
   if (!optimalDependencyTargetFolder[currentPath]) {
     return false;
@@ -144,12 +151,12 @@ function _handleIfConflictingDependencyWillBeInstalled(currentPath: string,
 
   const conflictingDependency: DependencyRequestInfo = optimalDependencyTargetFolder[currentPath]
     .find((toBeInstalledDependency: DependencyRequestInfo) => {
-      return toBeInstalledDependency.name === requestedDependency.name &&
-              toBeInstalledDependency.versionRange !== requestedDependency.versionRange;
+      return toBeInstalledDependency.name === requestedDependency.name
+              && toBeInstalledDependency.versionRange !== requestedDependency.versionRange;
     });
 
   if (conflictingDependency) {
-    // tslint:disable-next-line:max-line-length
+    // eslint-disable-next-line max-len
     logger.debug(`${requestedDependency.identifier} can't be installed to ${currentPath}. it'd conflict with the to be installed ${conflictingDependency.identifier}`);
 
     return true;
@@ -158,9 +165,11 @@ function _handleIfConflictingDependencyWillBeInstalled(currentPath: string,
   return false;
 }
 
-export function determineDependencyTargetFolder(requestedDependencyArray: Array<DependencyRequestInfo>,
-                                                alreadyInstalledDependencies: Array<ModuleInfo>,
-                                                noHoistList: Array<DependencyInfo>): DependencyTargetFolder {
+export function determineDependencyTargetFolder(
+  requestedDependencyArray: Array<DependencyRequestInfo>,
+  alreadyInstalledDependencies: Array<ModuleInfo>,
+  noHoistList: Array<DependencyInfo>,
+): DependencyTargetFolder {
 
   const optimalDependencyTargetFolder: DependencyTargetFolder = {};
   for (const requestedDependency of requestedDependencyArray) {
@@ -190,10 +199,10 @@ export function determineDependencyTargetFolder(requestedDependencyArray: Array<
 
     for (const possiblePathElement of possiblePathElements) {
       // is this Dependency already on the list of things to install?
-      const installModuleHere: boolean = !(
-        _handleIfDependencyIsAlreadyOnInstallList(currentPath, requestedDependency, optimalDependencyTargetFolder) ||
-        _handleIfConflictingDependencyIsAlreadyInstalled(currentPath, requestedDependency, alreadyInstalledDependencies) ||
-        _handleIfConflictingDependencyWillBeInstalled(currentPath, requestedDependency, optimalDependencyTargetFolder)
+      const installModuleHere = !(
+        _handleIfDependencyIsAlreadyOnInstallList(currentPath, requestedDependency, optimalDependencyTargetFolder)
+        || _handleIfConflictingDependencyIsAlreadyInstalled(currentPath, requestedDependency, alreadyInstalledDependencies)
+        || _handleIfConflictingDependencyWillBeInstalled(currentPath, requestedDependency, optimalDependencyTargetFolder)
       );
 
       if (!installModuleHere) {

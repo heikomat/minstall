@@ -1,3 +1,15 @@
+# 4.0.1
+### Bugfixes
+Fixed a bug where dependencies were not recognized as already satisfied
+
+# 4.0.0
+This is mainly a maintenance update. The API is unchanged, but i still mark it
+as a major update, because support for node 4 (and probably node 6) is dropped
+with this release.
+
+### Improvements
+Dependencies have been updated and minstall is now written in typescript.
+
 # 3.3.0
 ### New Features
 - new Flag `--no-hoist <dependency>`. Setting this makes minstall not hoist that

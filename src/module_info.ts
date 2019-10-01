@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/member-naming */
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -30,7 +31,7 @@ export class ModuleInfo {
   private _version: string;
   private _dependencies: DependencyEntries;
   private _postinstallCommand: string;
-  private _isScoped: boolean = false;
+  private _isScoped = false;
   private _fullModulePath: string;
   private _bin: {[name: string]: string};
 
@@ -134,14 +135,14 @@ export class ModuleInfo {
         const dependencies: DependencyEntries = packageInfo.dependencies || {};
         if ((!process.env.NODE_ENV || process.env.NODE_ENV !== 'production')
             && packageInfo.devDependencies) {
-          for (const dependency in packageInfo.devDependencies) {
-            dependencies[dependency] = packageInfo.devDependencies[dependency];
+          for (const [dependency, version] of Object.entries(packageInfo.devDependencies)) {
+            dependencies[dependency] = version;
           }
         }
 
         if (packageInfo.peerDependencies) {
-          for (const dependency in packageInfo.peerDependencies) {
-            dependencies[dependency] = packageInfo.peerDependencies[dependency];
+          for (const [dependency, version] of Object.entries(packageInfo.peerDependencies)) {
+            dependencies[dependency] = version;
           }
         }
 
@@ -150,8 +151,10 @@ export class ModuleInfo {
           postinstallCommand = packageInfo.scripts.postinstall;
         }
 
-        return resolve(new ModuleInfo(rootFolder, moduleFolder, packageInfo.name,
-                                      packageInfo.version, dependencies, postinstallCommand, packageInfo.bin));
+        return resolve(new ModuleInfo(
+          rootFolder, moduleFolder, packageInfo.name,
+          packageInfo.version, dependencies, postinstallCommand, packageInfo.bin,
+        ));
       });
     });
   }
